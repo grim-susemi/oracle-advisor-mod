@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { tmpdir } from 'node:os';
 import extension, { REGISTRATION_KEY, isLeadSession } from '../src/extension.mjs';
 import { createFakePi } from './helpers/fake-pi.mjs';
 
@@ -116,9 +117,11 @@ test('non-interactive sessions register no hooks, tools or commands', t => {
   assert.equal(f.calls.registerCommand.length, 0);
 });
 
-test('child identity uses canonical paths and platform-specific casing', t => {
-  const directory = mkdtempSync(join(process.cwd(), '.oracle-path-test-'));
+test('child identity uses canonical paths in system temporary storage and platform-specific casing', t => {
+  const directory = mkdtempSync(join(tmpdir(), '.oracle-path-test-'));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
+  assert.equal(dirname(directory), tmpdir());
+  assert.notEqual(dirname(directory), process.cwd());
   const childDirectory = join(directory, 'senpi-task/children');
   mkdirSync(childDirectory, { recursive: true });
   writeFileSync(join(childDirectory, 'owned.jsonl'), '');
@@ -173,7 +176,7 @@ test('hooks, commands and tools are inert before the first session_start', async
 for (const sessionFile of ['x/senpi-task/children/a/session.jsonl', 'C:\\x\\senpi-task\\children\\a.jsonl']) {
   test(`interactive child remains inert after identity is latched: ${sessionFile}`, async t => {
     const priorAgent = process.env.SENPI_CODING_AGENT_DIR;
-    const directory = mkdtempSync(join(process.cwd(), '.oracle-child-test-'));
+    const directory = mkdtempSync(join(tmpdir(), '.oracle-child-test-'));
     t.after(() => {
       if (priorAgent === undefined) delete process.env.SENPI_CODING_AGENT_DIR;
       else process.env.SENPI_CODING_AGENT_DIR = priorAgent;
@@ -225,7 +228,7 @@ for (const sessionFile of ['x/senpi-task/children/a/session.jsonl', 'C:\\x\\senp
 
 test('kill switch registers nothing and writes one receipt even after duplicate loads', t => {
   const priorEnv = { switch: process.env.OMO_ORACLE_ADVISOR, agent: process.env.SENPI_CODING_AGENT_DIR };
-  const directory = mkdtempSync(join(process.cwd(), '.oracle-killswitch-test-'));
+  const directory = mkdtempSync(join(tmpdir(), '.oracle-killswitch-test-'));
   t.after(() => {
     if (priorEnv.switch === undefined) delete process.env.OMO_ORACLE_ADVISOR;
     else process.env.OMO_ORACLE_ADVISOR = priorEnv.switch;

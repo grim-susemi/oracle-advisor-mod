@@ -1,7 +1,8 @@
-import test from 'node:test';
+import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { cpSync, existsSync, mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { basename, join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { pathToFileURL } from 'node:url';
@@ -10,8 +11,8 @@ import { startMockProvider } from '../qa/mock-provider.mjs';
 import cheapMain from '../qa/main-provider.mjs';
 import { mainKey } from '../qa/auth-guard.mjs';
 
-const fixtures = join(ROOT, '.omo/evidence/test-fixtures');
-mkdirSync(fixtures, { recursive: true });
+const fixtures = mkdtempSync(join(tmpdir(), 'oracle-harness-test-'));
+after(() => rmSync(fixtures, { recursive: true, force: true }));
 
 test('owned process cleanup works when the driver and child environments lack PATH', { timeout: 15000 }, async () => {
   const source = `
@@ -54,8 +55,17 @@ test('owned process cleanup works when the driver and child environments lack PA
 
 test('unrelated startup failure is not relabelled as a missing extension', { timeout: 15000 }, async t => {
   const directory = mkdtempSync(join(fixtures, 'startup-'));
+  let run;
+  t.after(async () => {
+    if (run) await run.stop({ force: true });
+    rmSync(directory, { recursive: true, force: true });
+  });
+  const product = join(directory, 'product');
+  cpSync(ROOT, product, { recursive: true, filter: path =>
+    !['.git', '.omo', 'dist'].includes(basename(path)) && !basename(path).startsWith('.dist-stage-') });
+  const { OwnedProcess: FixtureProcess } = await import(pathToFileURL(join(product, 'qa/harness.mjs')).href);
   const attempt = `test-startup-${directory.split(/[\\/]/).at(-1)}`;
-  const attemptDir = join(ROOT, '.omo/evidence', attempt);
+  const attemptDir = join(product, '.omo/evidence', attempt);
   const fixture = (name, source) => {
     const path = join(directory, name);
     mkdirSync(join(path, '..'), { recursive: true });
@@ -69,17 +79,12 @@ test('unrelated startup failure is not relabelled as a missing extension', { tim
   fixture('omo-ai/package.json', '{"version":"fixture"}');
   const agent = join(directory, 'live-agent');
   mkdirSync(agent);
-  const run = new OwnedProcess(process.execPath,
-    [join(ROOT, 'qa/run.mjs'), '--case', 'host-missing-ext', '--attempt', attempt, '--main', 'mock'], {
-      cwd: ROOT, deadlineMs: 10000,
+  run = new FixtureProcess(process.execPath,
+    [join(product, 'qa/run.mjs'), '--case', 'host-missing-ext', '--attempt', attempt, '--main', 'mock'], {
+      cwd: product, deadlineMs: 10000,
       env: { ...process.env, OMO_STABLE_SENPI_BUNDLE: engine, OMO_STABLE_REENTRY: launcher,
         OMO_STABLE_PLUGIN: plugin, ORACLE_QA_LIVE_AGENT: agent },
     });
-  t.after(async () => {
-    await run.stop({ force: true });
-    rmSync(directory, { recursive: true, force: true });
-    rmSync(attemptDir, { recursive: true, force: true });
-  });
   run.child.stdin.end();
   await run.exit;
   assert.equal(run.metadata.exit_code, 1, run.stderr);

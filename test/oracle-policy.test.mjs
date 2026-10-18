@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync,
+  existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync,
   rmSync, writeFileSync,
 } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -10,19 +10,11 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { installedLoader } from './helpers/installed-policy-loader.mjs';
 
-// Capture once, read only thereafter. All edits below target disposable copies.
+// Read the committed snapshot only. All edits below target disposable copies.
 const fixtures = join(dirname(fileURLToPath(import.meta.url)), 'fixtures/oracle-policy');
 const snapshot = join(fixtures, 'live-omo.jsonc');
 const source = 'C:/Users/USER/.omo-stable-500/home/.omo/omo.jsonc';
 const sha = value => createHash('sha256').update(value).digest('hex');
-mkdirSync(fixtures, { recursive: true });
-if (!existsSync(snapshot)) {
-  copyFileSync(source, snapshot);
-  writeFileSync(join(fixtures, 'source.json'), JSON.stringify({
-    source, sha256: sha(readFileSync(snapshot)), captured_at: new Date().toISOString(),
-  }, null, 2) + '\n');
-  chmodSync(snapshot, 0o444);
-}
 const original = readFileSync(snapshot, 'utf8');
 const policy = await import('../scripts/oracle-policy.mjs');
 const decision = { allowlist_key: 'tools', allowlist_paths: ['[native].agents.oracle.tools'] };
