@@ -1,0 +1,14 @@
+# Hand-written offline fixture, not an ouroboros_generate_seed observation.
+goal: 'Keep the requested scope: local files only'
+acceptance_criteria:
+  - "Checks preserve # literal text"
+  - id: cleanup
+    text: "Every owned process exits"
+  - description: No credentials are copied # A YAML comment.
+constraints:
+  - No live installation
+ontology_schema:
+  name: LocalWork
+  description: Disposable verification state
+metadata:
+  ambiguity_score: 0.1

@@ -1,0 +1,1524 @@
+{
+    "$schema":  "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/omo.schema.json",
+    "side_panel":  {
+                       "enabled":  false
+                   },
+    "memory":  {
+                   "recall":  {
+                                  "tool_budget":  12
+                              }
+               },
+    "_migrations":  [
+                        "2026-07-opencode-config-unification",
+                        "2026-07-codex-config-jsonc",
+                        "2026-08-reasoning-unification",
+                        "2026-09-category-deep-split",
+                        "2026-09-harness-native-rename",
+                        "2026-09-subscription-provider-rename",
+                        "2026-09-opencode-routing-notice"
+                    ],
+    "[codex]":  {
+
+                },
+    "[opencode]":  {
+                       "team_mode":  {
+                                         "enabled":  true,
+                                         "max_parallel_members":  4,
+                                         "tmux_visualization":  false
+                                     },
+                       "agents":  {
+                                      "sisyphus":  {
+                                                       "model":  "kimi-for-coding/k3",
+                                                       "variant":  "high"
+                                                   },
+                                      "hephaestus":  {
+                                                         "model":  "openai/gpt-5.6-sol",
+                                                         "variant":  "high"
+                                                     },
+                                      "oracle":  {
+                                                     "model":  "openai/gpt-5.6-sol",
+                                                     "variant":  "xhigh"
+                                                 },
+                                      "librarian":  {
+                                                        "model":  "opencode-go/deepseek-v4-flash"
+                                                    },
+                                      "explore":  {
+                                                      "model":  "opencode-go/deepseek-v4-flash"
+                                                  },
+                                      "multimodal-looker":  {
+                                                                "model":  "openai/gpt-5.6-terra",
+                                                                "variant":  "medium"
+                                                            },
+                                      "prometheus":  {
+                                                         "model":  "kimi-for-coding/k3",
+                                                         "variant":  "max"
+                                                     },
+                                      "metis":  {
+                                                    "model":  "kimi-for-coding/k3",
+                                                    "variant":  "max"
+                                                },
+                                      "momus":  {
+                                                    "model":  "openai/gpt-5.6-terra",
+                                                    "variant":  "high"
+                                                },
+                                      "atlas":  {
+                                                    "model":  "kimi-for-coding/k3",
+                                                    "variant":  "high"
+                                                },
+                                      "sisyphus-junior":  {
+                                                              "model":  "kimi-for-coding/k3",
+                                                              "variant":  "high"
+                                                          }
+                                  },
+                       "categories":  {
+                                          "visual-engineering":  {
+                                                                     "model":  "kimi-for-coding/k3",
+                                                                     "variant":  "high"
+                                                                 },
+                                          "ultrabrain":  {
+                                                             "model":  "openai/gpt-5.6-sol",
+                                                             "variant":  "xhigh"
+                                                         },
+                                          "deep-low":  {
+                                                           "model":  "openai/gpt-5.6-terra",
+                                                           "variant":  "xhigh"
+                                                       },
+                                          "artistry":  {
+                                                           "model":  "kimi-for-coding/k3",
+                                                           "variant":  "high"
+                                                       },
+                                          "quick":  {
+                                                        "model":  "opencode-go/deepseek-v4-flash"
+                                                    },
+                                          "unspecified-low":  {
+                                                                  "model":  "openai/gpt-5.6-luna",
+                                                                  "variant":  "xhigh"
+                                                              },
+                                          "unspecified-high":  {
+                                                                   "model":  "kimi-for-coding/k3",
+                                                                   "variant":  "high"
+                                                               },
+                                          "writing":  {
+                                                          "model":  "opencode-go/deepseek-v4-flash"
+                                                      }
+                                      }
+                   },
+    "profiles":  {
+                     "native-gpt-deepseek":  {
+                                                 "[native]":  {
+                                                                  "agents":  {
+                                                                                 "explore":  {
+                                                                                                 "model":  "flash-high"
+                                                                                             },
+                                                                                 "librarian":  {
+                                                                                                   "model":  "flash-high"
+                                                                                               },
+                                                                                 "oracle":  {
+                                                                                                "model":  "sol"
+                                                                                            },
+                                                                                 "plan-consultant":  {
+                                                                                                         "model":  "glm-ollama-max"
+                                                                                                     },
+                                                                                 "plan-reviewer":  {
+                                                                                                       "model":  "terra"
+                                                                                                   }
+                                                                             },
+                                                                  "categories":  {
+                                                                                     "quick":  {
+                                                                                                   "model":  "flash-high",
+                                                                                                   "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                               },
+                                                                                     "fast-explore":  {
+                                                                                                          "model":  "flash-low",
+                                                                                                          "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                      },
+                                                                                     "unspecified-low":  {
+                                                                                                             "model":  "flash-max",
+                                                                                                             "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                         },
+                                                                                     "unspecified-high":  {
+                                                                                                              "model":  "cmd-pro",
+                                                                                                              "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                          },
+                                                                                     "visual-engineering":  {
+                                                                                                                "model":  "sol-medium",
+                                                                                                                "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                            },
+                                                                                     "artistry":  {
+                                                                                                      "model":  "sol-high",
+                                                                                                      "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                  },
+                                                                                     "architect":  {
+                                                                                                       "model":  "sol",
+                                                                                                       "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                   },
+                                                                                     "deep-low":  {
+                                                                                                      "model":  "sol-medium",
+                                                                                                      "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                  },
+                                                                                     "ultrabrain":  {
+                                                                                                        "model":  "sol-max",
+                                                                                                        "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                    },
+                                                                                     "writing":  {
+                                                                                                     "model":  "flash-high",
+                                                                                                     "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                 }
+                                                                                 }
+                                                              }
+                                             },
+                     "native-kimi-deepseek":  {
+                                                  "[native]":  {
+                                                                   "agents":  {
+                                                                                  "explore":  {
+                                                                                                  "model":  "flash-high"
+                                                                                              },
+                                                                                  "librarian":  {
+                                                                                                    "model":  "flash-high"
+                                                                                                },
+                                                                                  "oracle":  {
+                                                                                                 "model":  "kimi-max"
+                                                                                             },
+                                                                                  "plan-consultant":  {
+                                                                                                          "model":  "glm-high"
+                                                                                                      },
+                                                                                  "plan-reviewer":  {
+                                                                                                        "model":  "kimi"
+                                                                                                    }
+                                                                              },
+                                                                   "categories":  {
+                                                                                      "quick":  {
+                                                                                                    "model":  "flash-high",
+                                                                                                    "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                },
+                                                                                      "fast-explore":  {
+                                                                                                           "model":  "flash-low",
+                                                                                                           "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                       },
+                                                                                      "unspecified-low":  {
+                                                                                                              "model":  "flash",
+                                                                                                              "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                          },
+                                                                                      "unspecified-high":  {
+                                                                                                               "model":  "kimi-max",
+                                                                                                               "fallback_models":  [
+                                                                                                                                       "ollama/glm-5.2"
+                                                                                                                                   ],
+                                                                                                               "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                           },
+                                                                                      "visual-engineering":  {
+                                                                                                                 "model":  "kimi-max",
+                                                                                                                 "fallback_models":  [
+                                                                                                                                         "ollama/glm-5.2"
+                                                                                                                                     ],
+                                                                                                                 "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                             },
+                                                                                      "artistry":  {
+                                                                                                       "model":  "kimi-max",
+                                                                                                       "fallback_models":  [
+                                                                                                                               "ollama/glm-5.2"
+                                                                                                                           ],
+                                                                                                       "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                   },
+                                                                                      "architect":  {
+                                                                                                        "model":  "kimi-max",
+                                                                                                        "fallback_models":  [
+                                                                                                                                "ollama/glm-5.2"
+                                                                                                                            ],
+                                                                                                        "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                    },
+                                                                                      "deep-low":  {
+                                                                                                       "model":  "flash-max",
+                                                                                                       "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                   },
+                                                                                      "ultrabrain":  {
+                                                                                                         "model":  "kimi-max",
+                                                                                                         "fallback_models":  [
+                                                                                                                                 "ollama/glm-5.2"
+                                                                                                                             ],
+                                                                                                         "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                     },
+                                                                                      "writing":  {
+                                                                                                      "model":  "flash-high",
+                                                                                                      "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                  }
+                                                                                  }
+                                                               }
+                                              },
+                     "native-gpt-kimi-deepseek":  {
+                                                      "[native]":  {
+                                                                       "agents":  {
+                                                                                      "explore":  {
+                                                                                                      "model":  "flash-high"
+                                                                                                  },
+                                                                                      "librarian":  {
+                                                                                                        "model":  "flash-high"
+                                                                                                    },
+                                                                                      "oracle":  {
+                                                                                                     "model":  "sol"
+                                                                                                 },
+                                                                                      "plan-consultant":  {
+                                                                                                              "model":  "glm-high"
+                                                                                                          },
+                                                                                      "plan-reviewer":  {
+                                                                                                            "model":  "terra"
+                                                                                                        }
+                                                                                  },
+                                                                       "categories":  {
+                                                                                          "quick":  {
+                                                                                                        "model":  "flash-high",
+                                                                                                        "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                    },
+                                                                                          "fast-explore":  {
+                                                                                                               "model":  "flash-low",
+                                                                                                               "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                           },
+                                                                                          "unspecified-low":  {
+                                                                                                                  "model":  "flash",
+                                                                                                                  "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                              },
+                                                                                          "unspecified-high":  {
+                                                                                                                   "model":  "kimi-max",
+                                                                                                                   "fallback_models":  [
+                                                                                                                                           "ollama/glm-5.2"
+                                                                                                                                       ],
+                                                                                                                   "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                               },
+                                                                                          "visual-engineering":  {
+                                                                                                                     "model":  "kimi-max",
+                                                                                                                     "fallback_models":  [
+                                                                                                                                             "ollama/glm-5.2"
+                                                                                                                                         ],
+                                                                                                                     "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                                 },
+                                                                                          "artistry":  {
+                                                                                                           "model":  "kimi-max",
+                                                                                                           "fallback_models":  [
+                                                                                                                                   "ollama/glm-5.2"
+                                                                                                                               ],
+                                                                                                           "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                       },
+                                                                                          "architect":  {
+                                                                                                            "model":  "sol",
+                                                                                                            "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                        },
+                                                                                          "deep-low":  {
+                                                                                                           "model":  "sol-medium",
+                                                                                                           "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                       },
+                                                                                          "ultrabrain":  {
+                                                                                                             "model":  "sol-max",
+                                                                                                             "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                         },
+                                                                                          "writing":  {
+                                                                                                          "model":  "flash-high",
+                                                                                                          "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                      }
+                                                                                      }
+                                                                   }
+                                                  },
+                     "native-kimi-ollama-deepseek":  {
+                                                         "[native]":  {
+                                                                          "agents":  {
+                                                                                         "explore":  {
+                                                                                                         "model":  "flash-ollama-4-1-off"
+                                                                                                     },
+                                                                                         "librarian":  {
+                                                                                                           "model":  "flash-high"
+                                                                                                       },
+                                                                                         "oracle":  {
+                                                                                                        "model":  "sol"
+                                                                                                    },
+                                                                                         "plan-consultant":  {
+                                                                                                                 "model":  "glm-ollama"
+                                                                                                             },
+                                                                                         "plan-reviewer":  {
+                                                                                                               "model":  "terra"
+                                                                                                           }
+                                                                                     },
+                                                                          "categories":  {
+                                                                                             "quick":  {
+                                                                                                           "model":  "flash-high",
+                                                                                                           "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                       },
+                                                                                             "fast-explore":  {
+                                                                                                                  "model":  "flash-low",
+                                                                                                                  "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                              },
+                                                                                             "unspecified-low":  {
+                                                                                                                     "model":  "flash",
+                                                                                                                     "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                                 },
+                                                                                             "unspecified-high":  {
+                                                                                                                      "model":  "glm-ollama-max",
+                                                                                                                      "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                                  },
+                                                                                             "visual-engineering":  {
+                                                                                                                        "model":  "glm-ollama-max",
+                                                                                                                        "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                                    },
+                                                                                             "artistry":  {
+                                                                                                              "model":  "glm-ollama-max",
+                                                                                                              "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                          },
+                                                                                             "architect":  {
+                                                                                                               "model":  "sol",
+                                                                                                               "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                           },
+                                                                                             "deep-low":  {
+                                                                                                              "model":  "sol-medium",
+                                                                                                              "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                          },
+                                                                                             "ultrabrain":  {
+                                                                                                                "model":  "sol-max",
+                                                                                                                "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                            },
+                                                                                             "writing":  {
+                                                                                                             "model":  "flash-ollama-high",
+                                                                                                             "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                         }
+                                                                                         }
+                                                                      }
+                                                     },
+                     "native-experimental-custom":  {
+                                                        "[native]":  {
+                                                                         "agents":  {
+                                                                                        "explore":  {
+                                                                                                        "model":  "cmd-qwen-qwen3-7-flash"
+                                                                                                    },
+                                                                                        "librarian":  {
+                                                                                                          "model":  "cmd-qwen-qwen3-7-flash"
+                                                                                                      },
+                                                                                        "oracle":  {
+                                                                                                       "model":  "astra"
+                                                                                                   },
+                                                                                        "omo-native-code-reviewer":  {
+                                                                                                                         "model":  "astra"
+                                                                                                                     },
+                                                                                        "omo-native-gate-reviewer":  {
+                                                                                                                         "model":  "astra"
+                                                                                                                     },
+                                                                                        "omo-native-qa-executor":  {
+                                                                                                                       "model":  "astra"
+                                                                                                                   },
+                                                                                        "plan-consultant":  {
+                                                                                                                "model":  "cmd-meta-muse-spark-1-3-contributor-max"
+                                                                                                            },
+                                                                                        "plan-reviewer":  {
+                                                                                                              "model":  "astra"
+                                                                                                          }
+                                                                                    },
+                                                                         "categories":  {
+                                                                                            "quick":  {
+                                                                                                          "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                                                                          "model":  "cmd-meta-muse-spark-1-3-contributor"
+                                                                                                      },
+                                                                                            "fast-explore":  {
+                                                                                                                 "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                                                                                 "model":  "cmd-qwen-qwen3-7-flash"
+                                                                                                             },
+                                                                                            "unspecified-low":  {
+                                                                                                                    "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                                                                                    "model":  "glm-5-3-flash-max"
+                                                                                                                },
+                                                                                            "unspecified-high":  {
+                                                                                                                     "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                                                                                     "model":  "cmd-meta-muse-spark-1-3-contributor-max"
+                                                                                                                 },
+                                                                                            "visual-engineering":  {
+                                                                                                                       "model":  "astra",
+                                                                                                                       "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                                   },
+                                                                                            "artistry":  {
+                                                                                                             "model":  "astra",
+                                                                                                             "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                         },
+                                                                                            "architect":  {
+                                                                                                              "model":  "astra",
+                                                                                                              "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                          },
+                                                                                            "deep-low":  {
+                                                                                                             "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                                                                             "model":  "glm-5-3-flash-max"
+                                                                                                         },
+                                                                                            "ultrabrain":  {
+                                                                                                               "model":  "astra-max",
+                                                                                                               "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done."
+                                                                                                           },
+                                                                                            "writing":  {
+                                                                                                            "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                                                                            "model":  "sol-6-medium"
+                                                                                                        },
+                                                                                            "deep-high":  {
+                                                                                                              "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                                                                              "model":  "cmd-meta-muse-spark-1-3-contributor-max"
+                                                                                                          }
+                                                                                        },
+                                                                         "model_profile":  "geeky-heavy"
+                                                                     },
+                                                        "model_profile":  "geeky-heavy"
+                                                    },
+                     "native-cmd-glm-deepseek":  {
+                                                     "[native]":  {
+                                                                      "agents":  {
+                                                                                     "ouroboros":  {
+                                                                                                       "model":  "anthropic-subscription-claude-opus-5-5-xhigh"
+                                                                                                   },
+                                                                                     "explore":  {
+                                                                                                     "model":  "flash-ollama-4-1-high"
+                                                                                                 },
+                                                                                     "librarian":  {
+                                                                                                       "model":  "flash-ollama-4-1-high"
+                                                                                                   },
+                                                                                     "oracle":  {
+                                                                                                    "model":  "sol-61-max"
+                                                                                                },
+                                                                                     "omo-native-code-reviewer":  {
+                                                                                                                      "model":  "sol-61"
+                                                                                                                  },
+                                                                                     "omo-native-gate-reviewer":  {
+                                                                                                                      "model":  "sol-61"
+                                                                                                                  },
+                                                                                     "omo-native-qa-executor":  {
+                                                                                                                    "model":  "sol-61"
+                                                                                                                },
+                                                                                     "plan-consultant":  {
+                                                                                                             "model":  "anthropic-subscription-claude-opus-5-5-max"
+                                                                                                         },
+                                                                                     "plan-reviewer":  {
+                                                                                                           "model":  "sol-61"
+                                                                                                       }
+                                                                                 },
+                                                                      "categories":  {
+                                                                                         "quick":  {
+                                                                                                       "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                                                                       "model":  "flash-ollama-4-1-high"
+                                                                                                   },
+                                                                                         "fast-explore":  {
+                                                                                                              "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                                                                              "model":  "flash-ollama-4-1"
+                                                                                                          },
+                                                                                         "unspecified-low":  {
+                                                                                                                 "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                                                                                 "model":  "anthropic-subscription-claude-sonnet-5-5-medium"
+                                                                                                             },
+                                                                                         "unspecified-high":  {
+                                                                                                                  "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                                                                                  "model":  "anthropic-subscription-claude-opus-5-5-medium"
+                                                                                                              },
+                                                                                         "visual-engineering":  {
+                                                                                                                    "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                                                                                    "model":  "anthropic-subscription-claude-opus-5-5-max"
+                                                                                                                },
+                                                                                         "artistry":  {
+                                                                                                          "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                                                                          "model":  "anthropic-subscription-claude-opus-5-5-max"
+                                                                                                      },
+                                                                                         "architect":  {
+                                                                                                           "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                                                                           "model":  "anthropic-subscription-claude-opus-5-5-max"
+                                                                                                       },
+                                                                                         "deep-low":  {
+                                                                                                          "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                                                                          "model":  "sol-61-high"
+                                                                                                      },
+                                                                                         "ultrabrain":  {
+                                                                                                            "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                                                                            "model":  "sol-61-max"
+                                                                                                        },
+                                                                                         "writing":  {
+                                                                                                         "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                                                                         "model":  "anthropic-subscription-claude-opus-5-5-low"
+                                                                                                     },
+                                                                                         "deep-high":  {
+                                                                                                           "model":  "sol-61"
+                                                                                                       }
+                                                                                     }
+                                                                  }
+                                                 }
+                 },
+    "[native]":  {
+                     "models":  {
+                                    "ox-alpha":  {
+                                                     "model":  "opencode/x-preview-f-free",
+                                                     "variant":  "high"
+                                                 },
+                                    "ox-alpha-max":  {
+                                                         "model":  "opencode/x-preview-f-free",
+                                                         "variant":  "max"
+                                                     },
+                                    "fable":  {
+                                                  "model":  "opencode/claude-fable-5",
+                                                  "variant":  "max"
+                                              },
+                                    "kimi":  {
+                                                 "model":  "kimi-coding/k3",
+                                                 "variant":  "high"
+                                             },
+                                    "kimi-max":  {
+                                                     "model":  "kimi-coding/k3",
+                                                     "variant":  "max"
+                                                 },
+                                    "kimi-low":  {
+                                                     "model":  "kimi-coding/k3",
+                                                     "variant":  "low"
+                                                 },
+                                    "kimi-fast":  {
+                                                      "model":  "kimi-coding/kimi-for-coding-highspeed",
+                                                      "variant":  "low"
+                                                  },
+                                    "sol":  {
+                                                "model":  "chatgpt-subscription/gpt-5.6-sol",
+                                                "variant":  "xhigh"
+                                            },
+                                    "sol-max":  {
+                                                    "model":  "chatgpt-subscription/gpt-5.6-sol",
+                                                    "variant":  "max"
+                                                },
+                                    "terra":  {
+                                                  "model":  "chatgpt-subscription/gpt-5.6-terra",
+                                                  "variant":  "high"
+                                              },
+                                    "terra-medium":  {
+                                                         "model":  "chatgpt-subscription/gpt-5.6-terra",
+                                                         "variant":  "medium"
+                                                     },
+                                    "flash":  {
+                                                  "model":  "opencode-go/deepseek-v4-flash",
+                                                  "variant":  "high"
+                                              },
+                                    "flash-max":  {
+                                                      "model":  "opencode-go/deepseek-v4-flash",
+                                                      "variant":  "max"
+                                                  },
+                                    "flash-low":  {
+                                                      "model":  "opencode-go/deepseek-v4-flash",
+                                                      "variant":  "low"
+                                                  },
+                                    "flash-high":  {
+                                                       "model":  "opencode-go/deepseek-v4-flash",
+                                                       "variant":  "high"
+                                                   },
+                                    "pro":  {
+                                                "model":  "opencode-go/deepseek-v4-pro",
+                                                "variant":  "max"
+                                            },
+                                    "glm-high":  {
+                                                     "model":  "ollama/glm-5.2",
+                                                     "variant":  "max"
+                                                 },
+                                    "glm-max":  {
+                                                    "model":  "ollama/glm-5.2",
+                                                    "variant":  "max"
+                                                },
+                                    "sol-high":  {
+                                                     "model":  "chatgpt-subscription/gpt-5.6-sol",
+                                                     "variant":  "high"
+                                                 },
+                                    "sol-medium":  {
+                                                       "model":  "chatgpt-subscription/gpt-5.6-sol",
+                                                       "variant":  "medium"
+                                                   },
+                                    "sol-6":  {
+                                                  "model":  "chatgpt-subscription/gpt-6-sol",
+                                                  "variant":  "xhigh"
+                                              },
+                                    "sol-6-max":  {
+                                                      "model":  "chatgpt-subscription/gpt-6-sol",
+                                                      "variant":  "max"
+                                                  },
+                                    "sol-6-high":  {
+                                                       "model":  "chatgpt-subscription/gpt-6-sol",
+                                                       "variant":  "high"
+                                                   },
+                                    "sol-6-medium":  {
+                                                         "model":  "chatgpt-subscription/gpt-6-sol",
+                                                         "variant":  "medium"
+                                                     },
+                                    "sol-6-off":  {
+                                                      "model":  "chatgpt-subscription/gpt-6-sol",
+                                                      "variant":  "off"
+                                                  },
+                                    "sol-61":  {
+                                                   "model":  "chatgpt-subscription/gpt-6.1-sol",
+                                                   "variant":  "xhigh"
+                                               },
+                                    "sol-61-fast":  {
+                                                        "model":  "chatgpt-subscription/gpt-6.1-sol",
+                                                        "variant":  "medium"
+                                                    },
+                                    "astra":  {
+                                                  "model":  "chatgpt-subscription/gpt-6-astra",
+                                                  "variant":  "xhigh"
+                                              },
+                                    "astra-max":  {
+                                                      "model":  "chatgpt-subscription/gpt-6-astra",
+                                                      "variant":  "max"
+                                                  },
+                                    "astra-high":  {
+                                                       "model":  "chatgpt-subscription/gpt-6-astra",
+                                                       "variant":  "high"
+                                                   },
+                                    "terra-xhigh":  {
+                                                        "model":  "chatgpt-subscription/gpt-5.6-terra",
+                                                        "variant":  "xhigh"
+                                                    },
+                                    "luna-xhigh":  {
+                                                       "model":  "chatgpt-subscription/gpt-5.6-luna",
+                                                       "variant":  "xhigh"
+                                                   },
+                                    "luna-fast":  {
+                                                      "model":  "chatgpt-subscription/gpt-5.6-luna-fast",
+                                                      "variant":  "low"
+                                                  },
+                                    "luna-6-xhigh":  {
+                                                         "model":  "chatgpt-subscription/gpt-6-luna",
+                                                         "variant":  "xhigh"
+                                                     },
+                                    "luna-6-low":  {
+                                                       "model":  "chatgpt-subscription/gpt-6-luna",
+                                                       "variant":  "low"
+                                                   },
+                                    "luna-6-off":  {
+                                                       "model":  "chatgpt-subscription/gpt-6-luna",
+                                                       "variant":  "off"
+                                                   },
+                                    "glm-ollama":  {
+                                                       "model":  "ollama/glm-5.2",
+                                                       "variant":  "max"
+                                                   },
+                                    "glm-ollama-max":  {
+                                                           "model":  "ollama/glm-5.2",
+                                                           "variant":  "max"
+                                                       },
+                                    "glm-ollama-low":  {
+                                                           "model":  "ollama/glm-5.2",
+                                                           "variant":  "max"
+                                                       },
+                                    "flash-ollama":  {
+                                                         "model":  "ollama/deepseek-v4-flash:0731",
+                                                         "variant":  "low"
+                                                     },
+                                    "flash-ollama-high":  {
+                                                              "model":  "ollama/deepseek-v4-flash:0731",
+                                                              "variant":  "high"
+                                                          },
+                                    "cmd-flash":  {
+                                                      "model":  "commandcode/deepseek/deepseek-v4-flash",
+                                                      "variant":  "high"
+                                                  },
+                                    "cmd-pro":  {
+                                                    "model":  "commandcode/deepseek/deepseek-v4-pro",
+                                                    "variant":  "max"
+                                                },
+                                    "cmd-sol":  {
+                                                    "model":  "commandcode/gpt-5.6-sol",
+                                                    "variant":  "xhigh"
+                                                },
+                                    "cmd-terra":  {
+                                                      "model":  "commandcode/gpt-5.6-terra",
+                                                      "variant":  "high"
+                                                  },
+                                    "cmd-luna":  {
+                                                     "model":  "commandcode/gpt-5.6-luna",
+                                                     "variant":  "high"
+                                                 },
+                                    "cmd-sol-6":  {
+                                                      "model":  "commandcode/gpt-6-sol",
+                                                      "variant":  "xhigh"
+                                                  },
+                                    "cmd-luna-6":  {
+                                                       "model":  "commandcode/gpt-6-luna",
+                                                       "variant":  "high"
+                                                   },
+                                    "cmd-kimi":  {
+                                                     "model":  "commandcode/moonshotai/Kimi-K3",
+                                                     "variant":  "high"
+                                                 },
+                                    "cmd-glm":  {
+                                                    "model":  "commandcode/zai-org/GLM-5.2",
+                                                    "variant":  "max"
+                                                },
+                                    "cmd-qwen":  {
+                                                     "model":  "commandcode/Qwen/Qwen3.7-Max",
+                                                     "variant":  "max"
+                                                 },
+                                    "cmd-minimax":  {
+                                                        "model":  "commandcode/MiniMaxAI/MiniMax-M3",
+                                                        "variant":  "high"
+                                                    },
+                                    "cmd-gemini":  {
+                                                       "model":  "commandcode/google/gemini-3.6-flash",
+                                                       "variant":  "high"
+                                                   },
+                                    "cmd-grok":  {
+                                                     "model":  "commandcode/xai/grok-4.6",
+                                                     "variant":  "high"
+                                                 },
+                                    "cmd-claude":  {
+                                                       "model":  "commandcode-anthropic/claude-sonnet-5",
+                                                       "variant":  "high"
+                                                   },
+                                    "cmd-fable":  {
+                                                      "model":  "commandcode-anthropic/claude-fable-5",
+                                                      "variant":  "max"
+                                                  },
+                                    "cmd-opus":  {
+                                                     "model":  "commandcode-anthropic/claude-opus-5",
+                                                     "variant":  "max"
+                                                 },
+                                    "cmd-haiku":  {
+                                                      "model":  "commandcode-anthropic/claude-haiku-4-5-20251001",
+                                                      "variant":  "low"
+                                                  },
+                                    "cmd-claude-opus-4-7":  {
+                                                                "model":  "commandcode-anthropic/claude-opus-4-7",
+                                                                "variant":  "high"
+                                                            },
+                                    "cmd-claude-opus-4-8":  {
+                                                                "model":  "commandcode-anthropic/claude-opus-4-8",
+                                                                "variant":  "high"
+                                                            },
+                                    "cmd-claude-sonnet-4-6":  {
+                                                                  "model":  "commandcode-anthropic/claude-sonnet-4-6",
+                                                                  "variant":  "high"
+                                                              },
+                                    "cmd-google-gemini-3-1-flash-lite":  {
+                                                                             "model":  "commandcode/google/gemini-3.1-flash-lite",
+                                                                             "variant":  "high"
+                                                                         },
+                                    "cmd-google-gemini-3-5-flash":  {
+                                                                        "model":  "commandcode/google/gemini-3.5-flash",
+                                                                        "variant":  "high"
+                                                                    },
+                                    "cmd-google-gemini-3-5-flash-lite":  {
+                                                                             "model":  "commandcode/google/gemini-3.5-flash-lite",
+                                                                             "variant":  "high"
+                                                                         },
+                                    "cmd-google-gemini-3-7-flash":  {
+                                                                        "model":  "commandcode/google/gemini-3.7-flash",
+                                                                        "variant":  "high"
+                                                                    },
+                                    "cmd-gpt-5-3-codex":  {
+                                                              "model":  "commandcode/gpt-5.3-codex",
+                                                              "variant":  "high"
+                                                          },
+                                    "cmd-gpt-5-4":  {
+                                                        "model":  "commandcode/gpt-5.4",
+                                                        "variant":  "high"
+                                                    },
+                                    "cmd-gpt-5-4-mini":  {
+                                                             "model":  "commandcode/gpt-5.4-mini",
+                                                             "variant":  "high"
+                                                         },
+                                    "cmd-gpt-5-5":  {
+                                                        "model":  "commandcode/gpt-5.5",
+                                                        "variant":  "high"
+                                                    },
+                                    "cmd-meta-muse-spark-1-1":  {
+                                                                    "model":  "commandcode/meta/muse-spark-1.1",
+                                                                    "variant":  "high"
+                                                                },
+                                    "cmd-meta-muse-spark-1-2":  {
+                                                                    "model":  "commandcode/meta/muse-spark-1.2",
+                                                                    "variant":  "high"
+                                                                },
+                                    "cmd-meta-muse-spark-1-2-contributor":  {
+                                                                                "model":  "commandcode/meta/muse-spark-1.2-contributor",
+                                                                                "variant":  "high"
+                                                                            },
+                                    "cmd-meta-muse-spark-1-3":  {
+                                                                    "model":  "commandcode/meta/muse-spark-1.3",
+                                                                    "variant":  "high"
+                                                                },
+                                    "cmd-meta-muse-spark-1-3-contributor":  {
+                                                                                "model":  "commandcode/meta/muse-spark-1.3-contributor",
+                                                                                "variant":  "high"
+                                                                            },
+                                    "cmd-minimaxai-minimax-m2-5":  {
+                                                                       "model":  "commandcode/MiniMaxAI/MiniMax-M2.5",
+                                                                       "variant":  "high"
+                                                                   },
+                                    "cmd-minimaxai-minimax-m2-7":  {
+                                                                       "model":  "commandcode/MiniMaxAI/MiniMax-M2.7",
+                                                                       "variant":  "high"
+                                                                   },
+                                    "cmd-moonshotai-kimi-k2-5":  {
+                                                                     "model":  "commandcode/moonshotai/Kimi-K2.5",
+                                                                     "variant":  "high"
+                                                                 },
+                                    "cmd-moonshotai-kimi-k2-6":  {
+                                                                     "model":  "commandcode/moonshotai/Kimi-K2.6",
+                                                                     "variant":  "high"
+                                                                 },
+                                    "cmd-moonshotai-kimi-k2-7-code":  {
+                                                                          "model":  "commandcode/moonshotai/Kimi-K2.7-Code",
+                                                                          "variant":  "high"
+                                                                      },
+                                    "cmd-moonshotai-kimi-k2-7-code-highspeed":  {
+                                                                                    "model":  "commandcode/moonshotai/Kimi-K2.7-Code-Highspeed",
+                                                                                    "variant":  "high"
+                                                                                },
+                                    "cmd-nvidia-nemotron-3-ultra-550b-a55b":  {
+                                                                                  "model":  "commandcode/nvidia/nemotron-3-ultra-550b-a55b",
+                                                                                  "variant":  "high"
+                                                                              },
+                                    "cmd-poolside-laguna-s-2-1-free":  {
+                                                                           "model":  "commandcode/poolside/laguna-s-2.1-free",
+                                                                           "variant":  "high"
+                                                                       },
+                                    "cmd-qwen-qwen3-6-max-preview":  {
+                                                                         "model":  "commandcode/Qwen/Qwen3.6-Max-Preview",
+                                                                         "variant":  "high"
+                                                                     },
+                                    "cmd-qwen-qwen3-6-plus":  {
+                                                                  "model":  "commandcode/Qwen/Qwen3.6-Plus",
+                                                                  "variant":  "high"
+                                                              },
+                                    "cmd-qwen-qwen3-7-flash":  {
+                                                                   "model":  "commandcode/Qwen/Qwen3.7-Flash",
+                                                                   "variant":  "high"
+                                                               },
+                                    "cmd-qwen-qwen3-7-plus":  {
+                                                                  "model":  "commandcode/Qwen/Qwen3.7-Plus",
+                                                                  "variant":  "high"
+                                                              },
+                                    "cmd-qwen-qwen3-8-max":  {
+                                                                 "model":  "commandcode/Qwen/Qwen3.8-Max",
+                                                                 "variant":  "high"
+                                                             },
+                                    "cmd-sakana-fugu-ultra":  {
+                                                                  "model":  "commandcode/sakana/fugu-ultra",
+                                                                  "variant":  "high"
+                                                              },
+                                    "cmd-stepfun-step-3-5-flash":  {
+                                                                       "model":  "commandcode/stepfun/Step-3.5-Flash",
+                                                                       "variant":  "high"
+                                                                   },
+                                    "cmd-stepfun-step-3-7-flash":  {
+                                                                       "model":  "commandcode/stepfun/Step-3.7-Flash",
+                                                                       "variant":  "high"
+                                                                   },
+                                    "cmd-tencent-hy3-paid":  {
+                                                                 "model":  "commandcode/tencent/hy3-paid",
+                                                                 "variant":  "high"
+                                                             },
+                                    "cmd-stealth-space-bunny-alpha":  {
+                                                                          "model":  "commandcode/stealth/space-bunny-alpha",
+                                                                          "variant":  "high"
+                                                                      },
+                                    "cmd-stealth-pixel-canary":  {
+                                                                     "model":  "commandcode/stealth/pixel-canary",
+                                                                     "variant":  "high"
+                                                                 },
+                                    "cmd-thinkingmachines-inkling":  {
+                                                                         "model":  "commandcode/thinkingmachines/inkling",
+                                                                         "variant":  "high"
+                                                                     },
+                                    "cmd-thinkingmachines-inkling-small":  {
+                                                                               "model":  "commandcode/thinkingmachines/inkling-small",
+                                                                               "variant":  "high"
+                                                                           },
+                                    "cmd-xai-grok-4-5":  {
+                                                             "model":  "commandcode/xai/grok-4.5",
+                                                             "variant":  "high"
+                                                         },
+                                    "cmd-xiaomi-mimo-v2-5":  {
+                                                                 "model":  "commandcode/xiaomi/mimo-v2.5",
+                                                                 "variant":  "high"
+                                                             },
+                                    "cmd-xiaomi-mimo-v2-5-pro":  {
+                                                                     "model":  "commandcode/xiaomi/mimo-v2.5-pro",
+                                                                     "variant":  "high"
+                                                                 },
+                                    "cmd-zai-org-glm-5":  {
+                                                              "model":  "commandcode/zai-org/GLM-5",
+                                                              "variant":  "high"
+                                                          },
+                                    "cmd-zai-org-glm-5-1":  {
+                                                                "model":  "commandcode/zai-org/GLM-5.1",
+                                                                "variant":  "high"
+                                                            },
+                                    "cmd-zai-org-glm-5-2-fast":  {
+                                                                     "model":  "commandcode/zai-org/GLM-5.2-Fast",
+                                                                     "variant":  "high"
+                                                                 },
+                                    "zen-big-pickle":  {
+                                                           "model":  "opencode/big-pickle",
+                                                           "variant":  "high"
+                                                       },
+                                    "zen-deepseek-flash-free":  {
+                                                                    "model":  "opencode/deepseek-v4-flash-free",
+                                                                    "variant":  "high"
+                                                                },
+                                    "zen-mimo-free":  {
+                                                          "model":  "opencode/mimo-v2.5-free",
+                                                          "variant":  "high"
+                                                      },
+                                    "zen-hy3-free":  {
+                                                         "model":  "opencode/hy3-free",
+                                                         "variant":  "high"
+                                                     },
+                                    "zen-laguna-free":  {
+                                                            "model":  "opencode/laguna-s-2.1-free",
+                                                            "variant":  "high"
+                                                        },
+                                    "zen-nemotron-ultra-free":  {
+                                                                    "model":  "opencode/nemotron-3-ultra-free",
+                                                                    "variant":  "high"
+                                                                },
+                                    "zen-nemotron-lightning-free":  {
+                                                                        "model":  "opencode/nemotron-3.5-lightning-free",
+                                                                        "variant":  "high"
+                                                                    },
+                                    "zen-deepseek-flash-free-max":  {
+                                                                        "model":  "opencode/deepseek-v4-flash-free",
+                                                                        "variant":  "max"
+                                                                    },
+                                    "zen-hy3-free-medium":  {
+                                                                "model":  "opencode/hy3-free",
+                                                                "variant":  "medium"
+                                                            },
+                                    "cmd-flash-xhigh":  {
+                                                            "model":  "commandcode/deepseek/deepseek-v4-flash",
+                                                            "variant":  "xhigh"
+                                                        },
+                                    "cmd-deepseek-4-1-flash":  {
+                                                                   "model":  "commandcode/deepseek/deepseek-v4.1-flash",
+                                                                   "variant":  "high"
+                                                               },
+                                    "flash-ollama-max":  {
+                                                             "model":  "ollama/deepseek-v4-flash:0731",
+                                                             "variant":  "max"
+                                                         },
+                                    "cmd-zai-org-glm-5-3":  {
+                                                                "model":  "commandcode/zai-org/GLM-5.3",
+                                                                "variant":  "high"
+                                                            },
+                                    "cmd-glm-5-3":  {
+                                                        "model":  "commandcode/zai-org/GLM-5.3",
+                                                        "variant":  "high"
+                                                    },
+                                    "cmd-zai-org-glm-5-3-high":  {
+                                                                     "model":  "commandcode/zai-org/GLM-5.3",
+                                                                     "variant":  "high"
+                                                                 },
+                                    "cmd-zai-org-glm-5-3-medium":  {
+                                                                       "model":  "commandcode/zai-org/GLM-5.3",
+                                                                       "variant":  "medium"
+                                                                   },
+                                    "cmd-flash-off":  {
+                                                          "model":  "commandcode/deepseek/deepseek-v4-flash",
+                                                          "variant":  "off"
+                                                      },
+                                    "cmd-zai-org-glm-5-3-off":  {
+                                                                    "model":  "commandcode/zai-org/GLM-5.3",
+                                                                    "variant":  "off"
+                                                                },
+                                    "cmd-z-ai-glm-5-3-flash":  {
+                                                                   "model":  "commandcode/z-ai/glm-5.3-flash",
+                                                                   "variant":  "high"
+                                                               },
+                                    "cmd-z-ai-glm-5-3-flash-medium":  {
+                                                                          "model":  "commandcode/z-ai/glm-5.3-flash",
+                                                                          "variant":  "medium"
+                                                                      },
+                                    "cmd-z-ai-glm-5-3-flash-off":  {
+                                                                       "model":  "commandcode/z-ai/glm-5.3-flash",
+                                                                       "variant":  "off"
+                                                                   },
+                                    "cmd-glm-5-3-flash":  {
+                                                              "model":  "commandcode/z-ai/glm-5.3-flash",
+                                                              "variant":  "high"
+                                                          },
+                                    "cmd-glm-5-3-flash-max":  {
+                                                                  "model":  "commandcode/z-ai/glm-5.3-flash",
+                                                                  "variant":  "max"
+                                                              },
+                                    "flash-ollama-off":  {
+                                                             "model":  "ollama/deepseek-v4-flash:0731",
+                                                             "variant":  "off"
+                                                         },
+                                    "glm-off":  {
+                                                    "model":  "ollama/glm-5.2",
+                                                    "variant":  "off"
+                                                },
+                                    "glm-5-3":  {
+                                                    "model":  "ollama/glm-5.3",
+                                                    "variant":  "high"
+                                                },
+                                    "glm-5-3-high":  {
+                                                         "model":  "ollama/glm-5.3",
+                                                         "variant":  "high"
+                                                     },
+                                    "glm-5-3-max":  {
+                                                        "model":  "ollama/glm-5.3",
+                                                        "variant":  "max"
+                                                    },
+                                    "glm-5-3-off":  {
+                                                        "model":  "ollama/glm-5.3",
+                                                        "variant":  "off"
+                                                    },
+                                    "glm-5-3-flash":  {
+                                                          "model":  "ollama/glm-5.3-flash",
+                                                          "variant":  "high"
+                                                      },
+                                    "glm-5-3-flash-high":  {
+                                                               "model":  "ollama/glm-5.3-flash",
+                                                               "variant":  "high"
+                                                           },
+                                    "glm-5-3-flash-max":  {
+                                                              "model":  "ollama/glm-5.3-flash",
+                                                              "variant":  "max"
+                                                          },
+                                    "glm-5-3-flash-off":  {
+                                                              "model":  "ollama/glm-5.3-flash",
+                                                              "variant":  "off"
+                                                          },
+                                    "cmd-google-gemini-3-7-flash-off":  {
+                                                                            "model":  "commandcode/google/gemini-3.7-flash",
+                                                                            "variant":  "off"
+                                                                        },
+                                    "cmd-google-gemini-3-7-flash-medium":  {
+                                                                               "model":  "commandcode/google/gemini-3.7-flash",
+                                                                               "variant":  "medium"
+                                                                           },
+                                    "cmd-google-gemini-3-7-flash-low":  {
+                                                                            "model":  "commandcode/google/gemini-3.7-flash",
+                                                                            "variant":  "low"
+                                                                        },
+                                    "ds41-uncensored":  {
+                                                            "model":  "ollama-local/leonardoba500/deepseek-v41-uncensored",
+                                                            "variant":  "high"
+                                                        },
+                                    "zen-big-pickle-off":  {
+                                                               "model":  "opencode/big-pickle",
+                                                               "variant":  "off"
+                                                           },
+                                    "flash-off":  {
+                                                      "model":  "opencode-go/deepseek-v4-flash",
+                                                      "variant":  "off"
+                                                  },
+                                    "fable-off":  {
+                                                      "model":  "opencode/claude-fable-5",
+                                                      "variant":  "off"
+                                                  },
+                                    "ox-alpha-off":  {
+                                                         "model":  "opencode/x-preview-f-free",
+                                                         "variant":  "off"
+                                                     },
+                                    "flash-ollama-medium":  {
+                                                                "model":  "ollama/deepseek-v4-flash:0731",
+                                                                "variant":  "medium"
+                                                            },
+                                    "flash-ollama-4-1":  {
+                                                             "model":  "ollama/deepseek-v4.1-flash",
+                                                             "variant":  "low"
+                                                         },
+                                    "luna-off":  {
+                                                     "model":  "chatgpt-subscription/gpt-5.6-luna",
+                                                     "variant":  "off"
+                                                 },
+                                    "luna-fast-off":  {
+                                                          "model":  "chatgpt-subscription/gpt-5.6-luna-fast",
+                                                          "variant":  "off"
+                                                      },
+                                    "terra-off":  {
+                                                      "model":  "chatgpt-subscription/gpt-5.6-terra",
+                                                      "variant":  "off"
+                                                  },
+                                    "sol-off":  {
+                                                    "model":  "chatgpt-subscription/gpt-5.6-sol",
+                                                    "variant":  "off"
+                                                },
+                                    "glm-5-3-flash-low":  {
+                                                              "model":  "ollama/glm-5.3-flash",
+                                                              "variant":  "low"
+                                                          },
+                                    "luna-low":  {
+                                                     "model":  "chatgpt-subscription/gpt-5.6-luna",
+                                                     "variant":  "low"
+                                                 },
+                                    "astra-off":  {
+                                                      "model":  "chatgpt-subscription/gpt-6-astra",
+                                                      "variant":  "off"
+                                                  },
+                                    "cmd-meta-muse-spark-1-3-contributor-low":  {
+                                                                                    "model":  "commandcode/meta/muse-spark-1.3-contributor",
+                                                                                    "variant":  "low"
+                                                                                },
+                                    "cmd-meta-muse-spark-1-3-contributor-max":  {
+                                                                                    "model":  "commandcode/meta/muse-spark-1.3-contributor",
+                                                                                    "variant":  "max"
+                                                                                },
+                                    "ocg-muse-spark-1-2-contributor":  {
+                                                                           "model":  "opencode-go/muse-spark-1.2-contributor",
+                                                                           "variant":  "high"
+                                                                       },
+                                    "ocg-muse-spark-1-3-contributor":  {
+                                                                           "model":  "opencode-go/muse-spark-1.3-contributor",
+                                                                           "variant":  "high"
+                                                                       },
+                                    "ocg-muse-spark-1-3-contributor-minimal":  {
+                                                                                   "model":  "opencode-go/muse-spark-1.3-contributor",
+                                                                                   "variant":  "minimal"
+                                                                               },
+                                    "ocg-muse-spark-1-3-contributor-xhigh":  {
+                                                                                 "model":  "opencode-go/muse-spark-1.3-contributor",
+                                                                                 "variant":  "xhigh"
+                                                                             },
+                                    "glm-5-3-flash-medium":  {
+                                                                 "model":  "ollama/glm-5.3-flash",
+                                                                 "variant":  "medium"
+                                                             },
+                                    "astra-medium":  {
+                                                         "model":  "chatgpt-subscription/gpt-6-astra",
+                                                         "variant":  "medium"
+                                                     },
+                                    "ocg-muse-spark-1-3-contributor-medium":  {
+                                                                                  "model":  "opencode-go/muse-spark-1.3-contributor",
+                                                                                  "variant":  "medium"
+                                                                              },
+                                    "ocg-muse-spark-1-3-contributor-low":  {
+                                                                               "model":  "opencode-go/muse-spark-1.3-contributor",
+                                                                               "variant":  "low"
+                                                                           },
+                                    "ocg-muse-spark-1-2-contributor-minimal":  {
+                                                                                   "model":  "opencode-go/muse-spark-1.2-contributor",
+                                                                                   "variant":  "minimal"
+                                                                               },
+                                    "ocg-muse-spark-1-2-contributor-medium":  {
+                                                                                  "model":  "opencode-go/muse-spark-1.2-contributor",
+                                                                                  "variant":  "medium"
+                                                                              },
+                                    "flash-ollama-4-1-off":  {
+                                                                 "model":  "ollama/deepseek-v4.1-flash",
+                                                                 "variant":  "off"
+                                                             },
+                                    "flash-ollama-4-1-max":  {
+                                                                 "model":  "ollama/deepseek-v4.1-flash",
+                                                                 "variant":  "max"
+                                                             },
+                                    "flash-ollama-4-1-medium":  {
+                                                                    "model":  "ollama/deepseek-v4.1-flash",
+                                                                    "variant":  "medium"
+                                                                },
+                                    "flash-ollama-4-1-high":  {
+                                                                  "model":  "ollama/deepseek-v4.1-flash",
+                                                                  "variant":  "high"
+                                                              },
+                                    "ocg-union-alpha":  {
+                                                            "model":  "opencode-go/union-alpha",
+                                                            "variant":  "off"
+                                                        },
+                                    "ocg-union-alpha-high":  {
+                                                                 "model":  "opencode-go/union-alpha",
+                                                                 "variant":  "high"
+                                                             },
+                                    "ocg-union-alpha-medium":  {
+                                                                   "model":  "opencode-go/union-alpha",
+                                                                   "variant":  "medium"
+                                                               },
+                                    "cmd-deepseek-4-1-flash-low":  {
+                                                                       "model":  "commandcode/deepseek/deepseek-v4.1-flash",
+                                                                       "variant":  "low"
+                                                                   },
+                                    "cmd-deepseek-4-1-flash-medium":  {
+                                                                          "model":  "commandcode/deepseek/deepseek-v4.1-flash",
+                                                                          "variant":  "medium"
+                                                                      },
+                                    "cmd-deepseek-4-1-flash-max":  {
+                                                                       "model":  "commandcode/deepseek/deepseek-v4.1-flash",
+                                                                       "variant":  "max"
+                                                                   },
+                                    "routeway-deepseek-41":  {
+                                                                 "model":  "routeway/deepseek-v4.1-flash",
+                                                                 "variant":  "max"
+                                                             },
+                                    "routeway-glm-flash":  {
+                                                               "model":  "routeway/glm-5.3-flash",
+                                                               "variant":  "max"
+                                                           },
+                                    "routeway-glm-flash-uncensored":  {
+                                                                          "model":  "routeway/glm-5.3-flash-uncensored",
+                                                                          "variant":  "max"
+                                                                      },
+                                    "routeway-deepseek-free":  {
+                                                                   "model":  "routeway/deepseek-v4-flash:free",
+                                                                   "variant":  "max"
+                                                               },
+                                    "routeway-deepseek-41-off":  {
+                                                                     "model":  "routeway/deepseek-v4.1-flash",
+                                                                     "variant":  "off"
+                                                                 },
+                                    "routeway-deepseek-free-off":  {
+                                                                       "model":  "routeway/deepseek-v4-flash:free",
+                                                                       "variant":  "off"
+                                                                   },
+                                    "routeway-glm-flash-off":  {
+                                                                   "model":  "routeway/glm-5.3-flash",
+                                                                   "variant":  "off"
+                                                               },
+                                    "routeway-glm-flash-uncensored-off":  {
+                                                                              "model":  "routeway/glm-5.3-flash-uncensored",
+                                                                              "variant":  "off"
+                                                                          },
+                                    "routeway-deepseek-41-high":  {
+                                                                      "model":  "routeway/deepseek-v4.1-flash",
+                                                                      "variant":  "high"
+                                                                  },
+                                    "ds41-uncensored-off":  {
+                                                                "model":  "ollama-local/leonardoba500/deepseek-v41-uncensored",
+                                                                "variant":  "off"
+                                                            },
+                                    "ds41-uncensored-max":  {
+                                                                "model":  "ollama-local/leonardoba500/deepseek-v41-uncensored",
+                                                                "variant":  "max"
+                                                            },
+                                    "explabs-luna":  {
+                                                         "model":  "explabs/gpt-5.6-luna",
+                                                         "variant":  "max"
+                                                     },
+                                    "explabs-grok":  {
+                                                         "model":  "explabs/grok-4.7",
+                                                         "variant":  "max"
+                                                     },
+                                    "explabs-nemotron":  {
+                                                             "model":  "explabs/nemotron-3-ultra-550b-a55b",
+                                                             "variant":  "high"
+                                                         },
+                                    "explabs-ds4-flash":  {
+                                                              "model":  "explabs/deepseek-v4-flash",
+                                                              "variant":  "high"
+                                                          },
+                                    "explabs-ds41-flash":  {
+                                                               "model":  "explabs/deepseek-v4.1-flash",
+                                                               "variant":  "high"
+                                                           },
+                                    "explabs-jev":  {
+                                                        "model":  "explabs/jev-latest",
+                                                        "variant":  "off"
+                                                    },
+                                    "explabs-ds4-flash-max":  {
+                                                                  "model":  "explabs/deepseek-v4-flash",
+                                                                  "variant":  "max"
+                                                              },
+                                    "explabs-grok-low":  {
+                                                             "model":  "explabs/grok-4.7",
+                                                             "variant":  "low"
+                                                         },
+                                    "explabs-grok-xhigh":  {
+                                                               "model":  "explabs/grok-4.7",
+                                                               "variant":  "xhigh"
+                                                           },
+                                    "orca-deepseek-v4-flash-free-high":  {
+                                                                             "model":  "orcarouter/deepseek/deepseek-v4-flash-free",
+                                                                             "variant":  "high"
+                                                                         },
+                                    "orca-glm-5-3-flash-free-high":  {
+                                                                         "model":  "orcarouter/z-ai/glm-5.3-flash-free",
+                                                                         "variant":  "high"
+                                                                     },
+                                    "orca-deepseek-v4-flash-low":  {
+                                                                       "model":  "orcarouter/deepseek/deepseek-v4-flash",
+                                                                       "variant":  "low"
+                                                                   },
+                                    "orca-deepseek-v4-flash":  {
+                                                                   "model":  "orcarouter/deepseek/deepseek-v4-flash",
+                                                                   "variant":  "high"
+                                                               },
+                                    "cmd-stealth-pixel-canary-max":  {
+                                                                         "model":  "commandcode/stealth/pixel-canary",
+                                                                         "variant":  "max"
+                                                                     },
+                                    "orca-glm-5-3-flash":  {
+                                                               "model":  "orcarouter/z-ai/glm-5.3-flash",
+                                                               "variant":  "high"
+                                                           },
+                                    "sol-61-max":  {
+                                                       "model":  "chatgpt-subscription/gpt-6.1-sol",
+                                                       "variant":  "max"
+                                                   },
+                                    "sol-61-high":  {
+                                                        "model":  "chatgpt-subscription/gpt-6.1-sol",
+                                                        "variant":  "high"
+                                                    },
+                                    "cmd-meta-muse-spark-1-3-contributor-medium":  {
+                                                                                       "model":  "commandcode/meta/muse-spark-1.3-contributor",
+                                                                                       "reasoning":  "medium"
+                                                                                   },
+                                    "cmd-meta-muse-spark-1-3-medium":  {
+                                                                           "model":  "commandcode/meta/muse-spark-1.3",
+                                                                           "variant":  "medium"
+                                                                       },
+                                    "orca-glm-5-3-flash-max":  {
+                                                                   "model":  "orcarouter/z-ai/glm-5.3-flash",
+                                                                   "variant":  "max"
+                                                               },
+                                    "orca-deepseek-v4-flash-medium":  {
+                                                                          "model":  "orcarouter/deepseek/deepseek-v4-flash",
+                                                                          "variant":  "medium"
+                                                                      },
+                                    "orca-glm-5-3-flash-low":  {
+                                                                   "model":  "orcarouter/z-ai/glm-5.3-flash",
+                                                                   "variant":  "low"
+                                                               },
+                                    "anthropic-subscription-claude-opus-5-5-max":  {
+                                                                                       "model":  "anthropic-subscription/claude-opus-5-5",
+                                                                                       "variant":  "max"
+                                                                                   },
+                                    "anthropic-subscription-claude-sonnet-5-5-medium":  {
+                                                                                            "model":  "anthropic-subscription/claude-sonnet-5-5",
+                                                                                            "variant":  "medium"
+                                                                                        },
+                                    "anthropic-subscription-claude-opus-5-5-medium":  {
+                                                                                          "model":  "anthropic-subscription/claude-opus-5-5",
+                                                                                          "variant":  "medium"
+                                                                                      },
+                                    "anthropic-subscription-claude-fable-5-1-max":  {
+                                                                                        "model":  "anthropic-subscription/claude-fable-5-1",
+                                                                                        "variant":  "max"
+                                                                                    },
+                                    "anthropic-subscription-claude-opus-5-5-low":  {
+                                                                                       "model":  "anthropic-subscription/claude-opus-5-5",
+                                                                                       "variant":  "low"
+                                                                                   },
+                                    "anthropic-subscription-claude-opus-5-5-xhigh":  {
+                                                                                         "model":  "anthropic-subscription/claude-opus-5-5",
+                                                                                         "variant":  "xhigh"
+                                                                                     },
+                                    "anthropic-subscription-claude-sonnet-5-5-high":  {
+                                                                                          "model":  "anthropic-subscription/claude-sonnet-5-5",
+                                                                                          "variant":  "high"
+                                                                                      },
+                                    "ds41-uncensored-low":  {
+                                                                "model":  "ollama-local/leonardoba500/deepseek-v41-uncensored",
+                                                                "variant":  "low"
+                                                            },
+                                    "anthropic-subscription-claude-haiku-5-5-max":  {
+                                                                                        "model":  "anthropic-subscription/claude-haiku-5-5",
+                                                                                        "variant":  "max"
+                                                                                    },
+                                    "anthropic-subscription-claude-sonnet-5-5-xhigh":  {
+                                                                                           "model":  "anthropic-subscription/claude-sonnet-5-5",
+                                                                                           "variant":  "xhigh"
+                                                                                       }
+                                },
+                     "task":  {
+                                  "default_execution_mode":  "in-process",
+                                  "default_concurrency":  4,
+                                  "wait":  {
+                                               "default_ms":  90000
+                                           }
+                              },
+                     "agents":  {
+                                    "ouroboros":  {
+                                                      "description":  "Ouroboros requirements interviewer and specification planner using the local Ouroboros MCP.",
+                                                      "prompt":  "You are Ouroboros, the dedicated requirements and specification planning agent. Before acting, read C:/Users/USER/.omo-stable-500/home/.omo/agent/agents/ouroboros.md and follow its planning contract. Use the installed real local Ouroboros MCP through the ouroboros-plan adapter. Preserve confirmed decisions. Return human questions and independent-review dispatch payloads to the parent. Do not implement, install, change settings, launch games, commit, push, publish, or execute a Seed. Reply in the owner\u0027s language and stop when the assigned planning operation is complete.",
+                                                      "execution_mode":  "in-process",
+                                                      "model":  "anthropic-subscription-claude-opus-5-5-xhigh"
+                                                  },
+                                    "explore":  {
+                                                    "model":  "flash-ollama-4-1-high"
+                                                },
+                                    "librarian":  {
+                                                      "model":  "flash-ollama-4-1-high"
+                                                  },
+                                    "oracle":  {
+                                                   "model":  "sol-61-max"
+                                               },
+                                    "omo-native-code-reviewer":  {
+                                                                     "model":  "sol-61"
+                                                                 },
+                                    "omo-native-gate-reviewer":  {
+                                                                     "model":  "sol-61"
+                                                                 },
+                                    "omo-native-qa-executor":  {
+                                                                   "model":  "sol-61"
+                                                               },
+                                    "plan-consultant":  {
+                                                            "model":  "anthropic-subscription-claude-opus-5-5-max"
+                                                        },
+                                    "plan-reviewer":  {
+                                                          "model":  "sol-61"
+                                                      }
+                                },
+                     "categories":  {
+                                        "quick":  {
+                                                      "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                      "model":  "flash-ollama-4-1-high"
+                                                  },
+                                        "fast-explore":  {
+                                                             "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                             "model":  "flash-ollama-4-1"
+                                                         },
+                                        "unspecified-low":  {
+                                                                "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                                "model":  "anthropic-subscription-claude-sonnet-5-5-medium"
+                                                            },
+                                        "unspecified-high":  {
+                                                                 "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                                 "model":  "anthropic-subscription-claude-opus-5-5-medium"
+                                                             },
+                                        "visual-engineering":  {
+                                                                   "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                                   "model":  "anthropic-subscription-claude-opus-5-5-max"
+                                                               },
+                                        "artistry":  {
+                                                         "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                         "model":  "anthropic-subscription-claude-opus-5-5-max"
+                                                     },
+                                        "architect":  {
+                                                          "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                          "model":  "anthropic-subscription-claude-opus-5-5-max"
+                                                      },
+                                        "deep-low":  {
+                                                         "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                         "model":  "sol-61-high"
+                                                     },
+                                        "ultrabrain":  {
+                                                           "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                           "model":  "sol-61-max"
+                                                       },
+                                        "writing":  {
+                                                        "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                        "model":  "anthropic-subscription-claude-opus-5-5-low"
+                                                    },
+                                        "deep-high":  {
+                                                          "prompt_append":  "Finish the assigned task directly; verify the result, then stop as soon as it is done.",
+                                                          "model":  "sol-61"
+                                                      }
+                                    },
+                     "teams":  {
+                                   "frontier-debate":  {
+                                                           "description":  "Fable 5, Kimi K3, and GPT-5.6 Sol debate a problem before the lead synthesizes the result.",
+                                                           "leadAgentId":  "fable",
+                                                           "members":  [
+                                                                           {
+                                                                               "kind":  "category",
+                                                                               "name":  "fable",
+                                                                               "category":  "fable-debate",
+                                                                               "prompt":  "Lead the debate. Frame the problem, challenge assumptions, and synthesize the final recommendation."
+                                                                           },
+                                                                           {
+                                                                               "kind":  "category",
+                                                                               "name":  "kimi",
+                                                                               "category":  "kimi-debate",
+                                                                               "prompt":  "Analyze the problem as an orchestration and execution specialist. Challenge the other proposals with concrete trade-offs."
+                                                                           },
+                                                                           {
+                                                                               "kind":  "category",
+                                                                               "name":  "sol",
+                                                                               "category":  "sol-debate",
+                                                                               "prompt":  "Analyze the deepest technical risks and propose an implementation-grade solution with verification criteria."
+                                                                           }
+                                                                       ]
+                                                       }
+                               },
+                     "memory":  {
+                                    "recall":  {
+
+                                               }
+                                }
+                 }
+}

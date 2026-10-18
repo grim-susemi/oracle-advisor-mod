@@ -1,0 +1,24 @@
+{
+  "tool_name": "mcp_ouroboros_ouroboros_generate_seed",
+  "call_time": "2026-10-17T03:22:25.901Z",
+  "arguments": {
+    "session_context": {
+      "goal": "a CLI that counts lines in a file",
+      "acceptance_criteria": [
+        "The CLI accepts one UTF-8 file path and prints its line count as an integer.",
+        "An empty file has zero lines; a final unterminated line counts as one line.",
+        "An unreadable input file exits nonzero with an error message."
+      ],
+      "constraints": [
+        "Node >=24, ESM, built-ins only."
+      ],
+      "project_type": "greenfield"
+    },
+    "ambiguity_score": 0,
+    "client_gates": [
+      "seed_ready_acceptance_guard",
+      "restate_goal_approved"
+    ]
+  },
+  "raw_tool_result_text": "Seed Generated Successfully (interview-less)\n============================================\nSeed ID: seed_0985b4780f7a\nAmbiguity Score: 0.20 (conservative ceiling — gate was structural, not scored)\nGoal: a CLI that counts lines in a file\n\n--- Seed YAML ---\ngoal: a CLI that counts lines in a file\ntask_type: code\nbrownfield_context:\n  project_type: greenfield\n  context_references: []\n  existing_patterns: []\n  existing_dependencies: []\nconstraints:\n- Node >=24, ESM, built-ins only.\nacceptance_criteria:\n- description: The CLI accepts one UTF-8 file path and prints its line count as an\n    integer.\n  semantic_ac_key: ac_323d36f1fbe08f70\n- description: An empty file has zero lines; a final unterminated line counts as one\n    line.\n  semantic_ac_key: ac_af143f4359a1263e\n- description: An unreadable input file exits nonzero with an error message.\n  semantic_ac_key: ac_43155fb71d1bf0d9\nontology_schema:\n  name: SessionSettledContract\n  description: Requirements the session already settled, crystallized without an interview.\n    Every entry is verbatim host-supplied material — no LLM composed any part of this\n    Seed.\n  fields: []\nevaluation_principles:\n- name: settled_requirements\n  description: Evaluate only the session-settled requirements.\n  weight: 1.0\nexit_conditions:\n- name: settled_requirements_met\n  description: All session-settled requirements are satisfied.\n  criteria: Every listed acceptance criterion passes.\nmetadata:\n  seed_id: seed_0985b4780f7a\n  version: 1.0.0\n  created_at: '2026-10-17T03:22:33.930603Z'\n  ambiguity_score: 0.2\n  interview_id: session-context\n  parent_seed_id: null\n  generation_mode: normal\n  degraded: false\n  unresolved_slots: []\n  recovery_reason: null\n"
+}

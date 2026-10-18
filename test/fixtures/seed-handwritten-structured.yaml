@@ -1,0 +1,17 @@
+# Hand-written offline fixture, not an ouroboros_generate_seed observation.
+goal: "Ship a reversible local advisor"
+acceptance_criteria:
+- id: readonly
+  description: The oracle cannot write files
+  verify_command: node --test test/policy.test.mjs
+  expected_artifacts:
+  - src/policy.mjs
+- description: 'The owner''s STOP remains binding'
+  verify_exemption_reason: Requires owned-session interaction
+constraints:
+- No runtime dependencies
+ontology_schema:
+  name: Advisor
+  description: Local advisor lifecycle
+metadata:
+  ambiguity_score: 0.12

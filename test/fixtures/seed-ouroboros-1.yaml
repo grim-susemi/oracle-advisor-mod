@@ -1,0 +1,43 @@
+goal: a CLI that counts lines in a file
+task_type: code
+brownfield_context:
+  project_type: greenfield
+  context_references: []
+  existing_patterns: []
+  existing_dependencies: []
+constraints:
+- Node >=24, ESM, built-ins only.
+acceptance_criteria:
+- description: The CLI accepts one UTF-8 file path and prints its line count as an
+    integer.
+  semantic_ac_key: ac_323d36f1fbe08f70
+- description: An empty file has zero lines; a final unterminated line counts as one
+    line.
+  semantic_ac_key: ac_af143f4359a1263e
+- description: An unreadable input file exits nonzero with an error message.
+  semantic_ac_key: ac_43155fb71d1bf0d9
+ontology_schema:
+  name: SessionSettledContract
+  description: Requirements the session already settled, crystallized without an interview.
+    Every entry is verbatim host-supplied material — no LLM composed any part of this
+    Seed.
+  fields: []
+evaluation_principles:
+- name: settled_requirements
+  description: Evaluate only the session-settled requirements.
+  weight: 1.0
+exit_conditions:
+- name: settled_requirements_met
+  description: All session-settled requirements are satisfied.
+  criteria: Every listed acceptance criterion passes.
+metadata:
+  seed_id: seed_0985b4780f7a
+  version: 1.0.0
+  created_at: '2026-10-17T03:22:33.930603Z'
+  ambiguity_score: 0.2
+  interview_id: session-context
+  parent_seed_id: null
+  generation_mode: normal
+  degraded: false
+  unresolved_slots: []
+  recovery_reason: null
