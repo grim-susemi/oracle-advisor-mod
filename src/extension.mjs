@@ -1,7 +1,7 @@
 import { appendFileSync, mkdirSync, realpathSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { createLedger } from './ledger.mjs';
-import { CHILD_SESSION_MESSAGE, registerCommands } from './commands.mjs';
+import { CHILD_SESSION_MESSAGE, openAdvisorJob, registerCommands } from './commands.mjs';
 import { registerSeedTool } from './seed.mjs';
 import { createTransport } from './transport.mjs';
 import { registerConsultTool } from './consult.mjs';
@@ -135,6 +135,7 @@ export default function extension(pi) {
       }
     }
     await rebuild(ctx);
+    if (!ledger.state.job) openAdvisorJob(ledger, 'session-default');
   });
   pi.on('session_tree', async (event, ctx) => {
     if (getSessionStatus() !== 'lead') return;

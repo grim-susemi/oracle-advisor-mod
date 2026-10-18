@@ -155,7 +155,7 @@ test('absolute Git validates and initializes an owned fixture before any host ex
     child.exit_code === 0 && child.pid_gone), true);
 });
 
-test('nudge validation observes the native shell call before opening a job and before the failure pair', async t => {
+test('nudge validation observes the native shell call in the default job before the failure pair', async t => {
   const path = mkdtempSync(join(tmpdir(), 'oracle-fixture-nudger-'));
   const priorRegistration = globalThis[REGISTRATION_KEY];
   const variables = {
@@ -216,7 +216,8 @@ test('nudge validation observes the native shell call before opening a job and b
   assert.equal(validation.call_id, 'native-fixture-1');
   assert.equal(validation.fixture_command, failureCommand);
   assert.equal(events.filter(event => event.event === 'fixture_validation').length, 1);
-  assert.equal(globalThis[REGISTRATION_KEY].runtime.ledger.state.job, null);
+  assert.equal(globalThis[REGISTRATION_KEY].runtime.ledger.state.job.status, 'active');
+  assert.equal(globalThis[REGISTRATION_KEY].runtime.ledger.state.job.opened_by, 'session-default');
   await fake.command('oracle', 'on');
   const shellArgs = { command: failureCommand, timeout: 30, run_in_background: false };
   await fake.ctx.executeTool('bash', shellArgs);

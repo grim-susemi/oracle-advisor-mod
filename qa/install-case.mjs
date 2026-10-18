@@ -119,8 +119,11 @@ export async function runInstallCase(values) {
       { from: owned.history.length });
       await owned.rpc('prompt', { message: '/oracle status' });
       receipt.oracle_status = (await status).message;
-      assert.equal(receipt.oracle_status.details.job, null);
-      assert.match(receipt.oracle_status.content, /oracle: no job/);
+      assert.equal(receipt.oracle_status.details.job.status, 'active');
+      assert.equal(receipt.oracle_status.details.job.opened_by, 'session-default');
+      assert.equal(receipt.oracle_status.details.job.counters.consults, 0);
+      assert.equal(receipt.oracle_status.details.job.oracle_task_id, null);
+      assert.match(receipt.oracle_status.content, /oracle J1 epoch 1: active/);
       await stopHost('before_uninstall');
       receipt.config_after_host = readFileSync(receipt.config_path, 'utf8');
       receipt.uninstall = await installer('uninstall', ['--uninstall']);

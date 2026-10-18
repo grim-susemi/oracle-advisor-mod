@@ -18,6 +18,42 @@ function setup(t, options = {}) {
   return { ...fake, runtime };
 }
 
+test('session_start opens a default job without dispatching or nudging', async t => {
+  const f = setup(t);
+  assert.equal(f.runtime.ledger.state.job, null);
+  await f.emit('session_start');
+  const job = f.runtime.ledger.state.job;
+  assert.equal(job.job_id, 'J1');
+  assert.equal(job.job_epoch, 1);
+  assert.equal(job.status, 'active');
+  assert.equal(job.opened_by, 'session-default');
+  assert.deepEqual(job.counters, { consults: 0, work: 0, completion: 0, nudges: 0, failure_nudges: 0 });
+  assert.equal(job.oracle_task_id, null);
+  assert.equal(f.calls.appendEntry.length, 1);
+  assert.equal(f.calls.appendEntry[0][1].type, 'job_opened');
+  assert.equal(f.calls.appendEntry[0][1].opened_by, 'session-default');
+  assert.equal(f.calls.executeTool.length, 0);
+  assert.equal(f.calls.sendMessage.length, 0);
+  await f.emit('session_start');
+  await f.command('oracle', 'on');
+  assert.equal(f.calls.appendEntry.length, 1);
+  assert.deepEqual(f.runtime.ledger.state.job, job);
+});
+
+test('session_start preserves paused and ended jobs instead of reopening them', async t => {
+  const f = setup(t);
+  await f.emit('session_start');
+  await f.command('oracle', 'off');
+  assert.equal(f.runtime.ledger.state.job.status, 'paused');
+  await f.emit('session_start');
+  assert.equal(f.runtime.ledger.state.job.status, 'paused');
+  await f.command('oracle', 'end');
+  await f.emit('session_start');
+  assert.equal(f.runtime.ledger.state.job.status, 'closed');
+  assert.equal(f.runtime.ledger.state.job.job_id, 'J1');
+  assert.equal(f.calls.executeTool.length, 0);
+});
+
 test('commands persist open, pause, resume, end, and monotonically numbered jobs', async t => {
   const f = setup(t);
   await f.emit('session_start');
@@ -35,6 +71,7 @@ test('commands persist open, pause, resume, end, and monotonically numbered jobs
   assert.equal(f.runtime.ledger.state.job.retire_pending, false);
   await f.command('oracle', 'on');
   assert.equal(f.runtime.ledger.state.job.job_id, 'J2');
+  assert.equal(f.runtime.ledger.state.job.opened_by, 'command');
   assert.equal(f.calls.executeTool.length, 0);
 });
 
@@ -115,6 +152,7 @@ test('non-interactive sessions register no hooks, tools or commands', t => {
   assert.equal(f.calls.on.length, 0);
   assert.equal(f.calls.registerTool.length, 0);
   assert.equal(f.calls.registerCommand.length, 0);
+  assert.equal(f.calls.appendEntry.length, 0);
 });
 
 test('child identity uses canonical paths in system temporary storage and platform-specific casing', t => {
@@ -200,6 +238,7 @@ for (const sessionFile of ['x/senpi-task/children/a/session.jsonl', 'C:\\x\\senp
       });
     }
     await child.emit('session_start');
+    assert.equal(child.runtime.ledger.state.job, null);
     const state = structuredClone(child.runtime.ledger.state);
     const registration = globalThis[REGISTRATION_KEY].runtime;
     // A later context cannot accidentally turn a latched child into a lead.
@@ -240,9 +279,11 @@ test('kill switch registers nothing and writes one receipt even after duplicate 
   process.env.SENPI_CODING_AGENT_DIR = directory;
   const f = setup(t);
   extension(f.pi);
+  assert.equal(f.runtime, undefined);
   assert.equal(f.calls.on.length, 0);
   assert.equal(f.calls.registerTool.length, 0);
   assert.equal(f.calls.registerCommand.length, 0);
+  assert.equal(f.calls.appendEntry.length, 0);
   const lines = readFileSync(join(directory, 'logs/oracle-advisor.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
   assert.equal(lines.length, 1);
   assert.equal(lines[0].status, 'disabled-by-env');

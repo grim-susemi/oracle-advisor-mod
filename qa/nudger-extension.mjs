@@ -91,7 +91,7 @@ export default function nudgerQA(pi) {
     state: runtime.ledger.state, native_calls: nativeCalls, running: runtime.transport.running,
   }));
   pi.rpc.handle('oracle.nudger.validate', async ({ executable }) => {
-    if (runtime.ledger.state.job || validation) {
+    if (runtime.ledger.state.job?.trigger_state || validation) {
       throw fixtureSetupError('executable_validation', executable, 'validation_requires_idle_fixture');
     }
     validation = { command: fixtureShellCommand(executable, ['--version']) };
