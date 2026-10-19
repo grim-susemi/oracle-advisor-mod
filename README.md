@@ -35,12 +35,6 @@ This policy affects other uses of those oracle definitions too.
 
 ## Use
 
-Interactive lead sessions start with the advisor on by default: `session_start`
-opens a job if none exists, without spawning an oracle or calling a model.
-Existing paused or ended jobs remain paused or ended after reload.
-Use `/oracle off` to pause it for the session, or set `OMO_ORACLE_ADVISOR=0`
-before starting the host to disable it globally.
-
 - `/oracle on`: open or resume a job.
 - `/oracle off`: pause nudges and gates, retaining the job.
 - `/oracle status`: show the job, counters, open STOPs, Seed and residency.
@@ -98,13 +92,9 @@ tree to stay unchanged.
 
 ## 한국어 요약
 
-대화형 메인 세션에서는 기본으로 켜지며, 세션 시작 시 작업이 없으면 자동으로
-엽니다. 작업을 여는 것만으로 모델을 호출하거나 오라클을 실행하지 않습니다.
-`/oracle off`로 해당 세션에서 일시 정지하고 `/oracle on`으로 다시 켭니다.
-일시 정지하거나 종료한 작업은 재로드해도 그대로 유지됩니다.
+`/oracle on`으로 작업을 켜고 `/oracle off`로 일시 정지합니다.
 `/oracle status`는 상태, `/oracle cancel`은 진행 중 자문 취소,
-`/oracle end`는 작업 종료입니다. 시작 전에 `OMO_ORACLE_ADVISOR=0`을 설정하면
-전체 비활성화됩니다. 작업 자식 세션에는 적용되지 않습니다.
+`/oracle end`는 작업 종료입니다. `OMO_ORACLE_ADVISOR=0`이면 비활성화됩니다.
 설치기는 오라클 읽기 전용 설정을 백업하며 `settings.json`은 바꾸지 않습니다.
 제거는 위 `--uninstall` 명령으로 합니다. 관리 대상 설정이 변경되었다면
 덮어쓰지 않고 거부합니다. 실사용 프로필 설치는 소유자 승인 후에만 하세요.
@@ -112,4 +102,3 @@ tree to stay unchanged.
 ## License
 
 MIT — see [LICENSE](LICENSE). Copyright (c) 2026 grim-susemi.
-

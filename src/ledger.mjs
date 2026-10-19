@@ -16,7 +16,6 @@ function openJob(data) {
     consults: {}, verdicts: [], stops: {}, dispositions: [], overrides: [],
     seed: null, counters: { consults: 0, work: 0, completion: 0, nudges: 0, failure_nudges: 0 },
     nudges: [], progress_revision: 0, retire_pending: false,
-    opened_by: data.opened_by ?? 'command',
   };
 }
 

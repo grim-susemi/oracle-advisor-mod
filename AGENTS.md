@@ -10,10 +10,6 @@ Runtime code uses only the supplied `pi` ExtensionAPI, never an SDK import.
   also reject session paths under `senpi-task/children/`. Consults refuse in task children.
 - `OMO_ORACLE_ADVISOR=0` registers no hooks or tools and writes one
   `disabled-by-env` receipt.
-- Interactive lead `session_start` opens a job by default only when none exists,
-  with `opened_by: "session-default"`; command opens use `"command"`.
-  Opening never spawns or calls a model. `/oracle off` pauses for the session;
-  `OMO_ORACLE_ADVISOR=0` disables globally. Reload preserves paused/closed jobs.
 - Commands: `/oracle on`, `off` (pause, retain state), `end` (close and retire),
   `status`, `cancel` (owner abort), `override <stop_id> <reason>`.
   No nudge, gate or consult without an active job.

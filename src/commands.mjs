@@ -4,13 +4,6 @@ import { openStops } from './ledger.mjs';
 const USAGE = '/oracle on|off|end|status|cancel|override <stop_id> <reason>';
 export const CHILD_SESSION_MESSAGE = 'not available in task child sessions';
 
-export function openAdvisorJob(ledger, opened_by = 'command') {
-  ledger.append({
-    type: 'job_opened', job_id: `J${ledger.state.next_job_number}`,
-    job_epoch: 1, at: new Date().toISOString(), opened_by,
-  });
-}
-
 function coordinationSnapshot(ctx) {
   const absent = { coordination: 'absent', coordination_roster: [] };
   try {
@@ -106,7 +99,10 @@ export function registerCommands(pi, runtime) {
       }
       if (action === 'on') {
         if (!job || job.status === 'closed') {
-          openAdvisorJob(ledger);
+          ledger.append({
+            type: 'job_opened', job_id: `J${ledger.state.next_job_number}`,
+            job_epoch: 1, at: new Date().toISOString(),
+          });
         } else if (job.status === 'paused') {
           ledger.append({ type: 'job_resumed', job_id: job.job_id });
         }
