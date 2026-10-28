@@ -1,8 +1,36 @@
 import { CONSULT_CAP, OVERRIDE_MIN_REASON, REASON_MAX } from './contracts.mjs';
 import { openStops } from './ledger.mjs';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { validateRouting } from './seams.mjs';
 
 const USAGE = '/oracle on|off|end|status|cancel|override <stop_id> <reason>';
 export const CHILD_SESSION_MESSAGE = 'not available in task child sessions';
+
+const agentDirectory = () => process.env.SENPI_CODING_AGENT_DIR ?? process.env.OMO_CODING_AGENT_DIR;
+
+function getTableState() {
+  const dir = agentDirectory();
+  if (!dir) return 'absent';
+  const filePath = join(dir, 'oracle-advisor', 'routing.json');
+  if (!existsSync(filePath)) return 'absent';
+  try {
+    const content = readFileSync(filePath, 'utf8');
+    const json = JSON.parse(content);
+    const val = validateRouting(json);
+    return val.valid ? 'valid' : `invalid: ${val.error}`;
+  } catch (err) {
+    return `invalid: ${err.message}`;
+  }
+}
+
+function lastAdvisorChoice(ledger) {
+  let choice = null;
+  for (const record of Object.values(ledger?.state?.requests ?? {})) {
+    if (record?.advisor && record.advisor.source) choice = record.advisor;
+  }
+  return choice;
+}
 
 function coordinationSnapshot(ctx) {
   const absent = { coordination: 'absent', coordination_roster: [] };
@@ -26,14 +54,18 @@ export function statusSnapshot(ledger, ctx) {
   return {
     job, calls_remaining: CONSULT_CAP - (job?.counters.consults ?? 0),
     open_stops: openStops(job).map(stop => stop.stop_id),
+    table_state: getTableState(),
+    last_advisor: lastAdvisorChoice(ledger),
     ...coordinationSnapshot(ctx),
   };
 }
 
 function statusText(snapshot) {
-  const { job, calls_remaining, open_stops, coordination, coordination_roster } = snapshot;
+  const { job, calls_remaining, open_stops, coordination, coordination_roster, table_state, last_advisor } = snapshot;
   const presence = `coordination ${coordination}; roster ${JSON.stringify(coordination_roster)}`;
-  if (!job) return `oracle: no job; ${presence}; live residency unavailable on this build`;
+  const tablePart = `; table ${table_state ?? 'absent'}`;
+  const advisorPart = last_advisor ? `; last advisor ${last_advisor.profile ?? 'legacy'} (${last_advisor.source})` : '';
+  if (!job) return `oracle: no job; ${presence}${tablePart}${advisorPart}; live residency unavailable on this build`;
   const running = Object.values(job.consults).find(consult => consult.status === 'running');
   const elapsed = running?.started_at
     ? `; consult started ${running.started_at}, elapsed ${Math.max(0, Date.now() - Date.parse(running.started_at))}ms`
@@ -43,7 +75,7 @@ function statusText(snapshot) {
     `nudges ${job.counters.nudges}; open STOPs ${open_stops.join(', ') || 'none'}; ` +
     `Seed ${job.seed?.hash ?? 'none'} (${job.seed?.source ?? 'unbound'}); ` +
     `oracle task ${job.oracle_task_id ?? 'none'}; residency ${job.residency}; ` +
-    `${presence}${elapsed}` +
+    `${presence}${elapsed}${tablePart}${advisorPart}` +
     (job.residency === 'unavailable' ? '; live residency unavailable on this build' : '');
 }
 

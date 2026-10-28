@@ -7,13 +7,50 @@ export const TRANSPORT_DECISION = Object.freeze({
 });
 
 const CHANNEL = 'senpi:extension-rpc-event';
-const terminal = task => ['completed', 'failed', 'error', 'lost', 'cancelled', 'interrupted', 'timed_out'].includes(task?.status);
+const terminal = task => ['completed', 'failed', 'error', 'lost', 'cancelled', 'interrupted', 'timed_out', 'paused'].includes(task?.status);
 const retained = task => task?.residency_state === 'resident' || task?.resident === true ||
   !!task?.resident_session || !!task?.resident_handle;
 const epoch = task => task?.notification?.run_epoch ?? task?.run_epoch;
 const retired = task => terminal(task) && !retained(task) &&
   (task.absent || ['persisted_only', 'disposed', 'released', 'none'].includes(task.residency_state));
 const textOf = result => (result?.content ?? []).filter(part => part.type === 'text').map(part => part.text).join('\n');
+export function isTaskFencedOrPaused(ctx, taskId) {
+  if (!ctx) return false;
+  try {
+    if (typeof ctx.getPauseState === 'function') {
+      const state = ctx.getPauseState();
+      if (state && Array.isArray(state.holds)) {
+        return state.holds.some(h =>
+          h && typeof h === 'object' && (h.kind === 'session_hold' || (taskId && h.kind === 'run_fence' && (h.data?.runRef?.id === taskId || h.key === `run_fence:task:${taskId}`)))
+        );
+      }
+    }
+  } catch {}
+  try {
+    const branch = ctx.sessionManager?.getBranch?.() ?? [];
+    const activeHolds = new Set();
+    for (let i = 0; i < branch.length; i++) {
+      const entry = branch[i];
+      if (entry?.type === 'custom' && entry.customType === 'session-hold') {
+        const d = entry.data;
+        if (d?.op === 'add' && d.key) {
+          activeHolds.add(d.key);
+        } else if (d?.op === 'release') {
+          if (Array.isArray(d.keys)) {
+            for (const k of d.keys) activeHolds.delete(k);
+          }
+          if (d.key) activeHolds.delete(d.key);
+        }
+      }
+    }
+    for (const key of activeHolds) {
+      if (key.startsWith('session_hold') || key === 'session_hold') return true;
+      if (taskId && (key === `run_fence:task:${taskId}` || key.startsWith(`run_fence:task:${taskId}:`))) return true;
+    }
+  } catch {}
+  return false;
+}
+
 export function nativeResult(outcome) {
   return { ...(outcome?.result ?? outcome), isError: outcome?.isError ?? outcome?.result?.isError ?? false };
 }
@@ -33,10 +70,10 @@ function failure(result) {
   if (has('quota', 'rate_limit', 429, '429')) {
     return typed('quota', textOf(result) || reason);
   }
-  if (has('cancelled', 'oracle_dead')) {
-    return typed(has('cancelled') ? 'cancelled' : 'oracle_dead', reason);
+  if (has('cancelled', 'oracle_dead', 'paused')) {
+    return typed(has('paused') || has('cancelled') ? 'cancelled' : 'oracle_dead', has('paused') ? 'paused_by_stop' : reason);
   }
-  if (result.isError || has('denied', 'error', 'refused', 'unavailable', 'blocked')) {
+  if (result.isError || has('plan_error', 'denied', 'error', 'refused', 'unavailable', 'blocked')) {
     return typed('unavailable', textOf(result) || reason);
   }
   return null;
@@ -82,11 +119,19 @@ export function createTransport(pi, { ledger, decision = TRANSPORT_DECISION, now
     run.inspectPeers?.();
     retireStopped(run);
   };
+  const lateIgnoredTasks = new Set();
   const onSnapshot = event => {
     if (getSessionStatus() !== 'lead' || event?.name !== 'omo.task.updated') return;
     const parent = event.data?.parent_session_id;
     if (active && parent && parent !== active.ctx.sessionManager.getSessionId()) return;
     for (const task of event.data?.tasks ?? []) {
+      if (!active && owned.has(task.task_id) && task.final_response && !lateIgnoredTasks.has(task.task_id)) {
+        const req = Object.values(ledger.state.requests).find(r => r.oracle_task_id === task.task_id);
+        if (!req || req.status !== 'answered') {
+          lateIgnoredTasks.add(task.task_id);
+          append('late_result_ignored', { oracle_task_id: task.task_id, reason: 'consult_ended' });
+        }
+      }
       // Only the exact owned dispatch label can establish ownership before the
       // foreground task returns its id (needed for owner cancel and shutdown).
       const admitted = active && !active.id && task.description === active.description &&
@@ -194,7 +239,14 @@ export function createTransport(pi, { ledger, decision = TRANSPORT_DECISION, now
     return results;
   }
   function retireStopped(run) {
-    if (!run.stopStatus || !run.id || run.retirement || terminal(snapshots.get(run.id))) return;
+    if (!run.stopStatus || !run.id || run.retirement) return;
+    const task = snapshots.get(run.id);
+    const isPaused = task?.status === 'paused' || !!task?.run_pause || run.stopReason === 'paused_by_stop' ||
+      isTaskFencedOrPaused(run.ctx, run.id);
+    if (terminal(task) || isPaused) {
+      run.controller.abort();
+      return;
+    }
     // A terminal snapshot can precede native promise settlement. Let dispatch
     // capture that result before ordinary cleanup reads or releases the task.
     // Native terminal parking refuses cancelled records. Retire the running
@@ -204,10 +256,11 @@ export function createTransport(pi, { ledger, decision = TRANSPORT_DECISION, now
       .catch(error => { run.retirementError = error; })
       .finally(() => run.controller.abort());
   }
-  function stop(status = 'cancelled') {
+  function stop(status = 'cancelled', reason = undefined) {
     if (!active) return false;
     if (!active.stopStatus) {
       active.stopStatus = status;
+      if (reason) active.stopReason = reason;
       retireStopped(active);
       wake();
     }
@@ -269,9 +322,11 @@ export function createTransport(pi, { ledger, decision = TRANSPORT_DECISION, now
       result = await call(run.ctx, 'task_send', { to: run.id, message: run.prompt }, run.controller.signal, capture);
       minimumEpoch = result.details?.run_epoch ?? minimumEpoch;
     } else {
-      result = await call(run.ctx, 'task', {
+      const taskArgs = {
         subagent_type: 'oracle', description: run.description, prompt: run.prompt, run_in_background: false,
-      }, run.controller.signal, capture);
+      };
+      if (run.advisor?.model) taskArgs.model = run.advisor.model;
+      result = await call(run.ctx, 'task', taskArgs, run.controller.signal, capture);
     }
     const details = result.details ?? {};
     const promoted = path !== 'revival' && (details.run_in_background === true || details.status === 'running');
@@ -280,6 +335,9 @@ export function createTransport(pi, { ledger, decision = TRANSPORT_DECISION, now
     assign(details.task_id, run);
     run.inspectPeers?.();
     const failed = failure(result);
+    if (run.id && (details.status === 'paused' || details.run_pause)) {
+      snapshots.set(run.id, { ...(snapshots.get(run.id) ?? {}), ...details });
+    }
     if (run.stopStatus) return { ...failed, status: run.stopStatus };
     if (failed) return failed;
     if (!run.id) return { status: 'unavailable', reason: 'task_id_missing' };
@@ -305,7 +363,12 @@ export function createTransport(pi, { ledger, decision = TRANSPORT_DECISION, now
       ? { ...answered, revival_failure: true, reason: answered.reason ?? 'oracle_dead_before_answer' } : answered;
   }
   async function execute(run) {
-    const outerAbort = () => { if (active === run) stop('cancelled'); };
+    const outerAbort = () => {
+      if (active === run) {
+        const isPaused = isTaskFencedOrPaused(run.ctx, run.id);
+        stop('cancelled', isPaused ? 'paused_by_stop' : undefined);
+      }
+    };
     run.signal?.addEventListener('abort', outerAbort, { once: true });
     watchPeers(run);
     let result;
@@ -313,8 +376,16 @@ export function createTransport(pi, { ledger, decision = TRANSPORT_DECISION, now
       visible('consult_running', `oracle consult running; started ${new Date(run.started).toISOString()}`, {
         request_id: run.request_id, started_at: new Date(run.started).toISOString(),
       });
-      if (run.signal?.aborted) stop('cancelled');
-      if (run.stopStatus) return { status: run.stopStatus, path: 'spawn', model_called: false };
+      if (run.signal?.aborted) {
+        const isPaused = isTaskFencedOrPaused(run.ctx, run.id);
+        stop('cancelled', isPaused ? 'paused_by_stop' : undefined);
+      }
+      if (run.stopStatus) return {
+        status: run.stopStatus,
+        ...(run.stopReason ? { reason: run.stopReason } : {}),
+        path: 'spawn',
+        model_called: false,
+      };
       adopt(run.job);
       let previous;
       if (live && !forceFresh && run.job.oracle_task_id) previous = await readTask(run.ctx, run.job.oracle_task_id);
@@ -334,8 +405,16 @@ export function createTransport(pi, { ledger, decision = TRANSPORT_DECISION, now
         }
         if (!run.stopStatus) result = await dispatch(run, 'fresh_fallback');
       }
-      if (run.stopStatus) result = { ...result, status: run.stopStatus, answer: undefined };
-      if (run.stopStatus && run.id && decision.abort_propagates && !run.engineDelivers &&
+      if (run.stopStatus) result = {
+        ...result,
+        status: run.stopStatus,
+        ...(run.stopReason ? { reason: run.stopReason } : {}),
+        answer: undefined,
+      };
+      const task = run.id ? snapshots.get(run.id) : undefined;
+      const isPaused = (run.stopStatus === 'cancelled' || result?.status === 'cancelled') &&
+        (task?.status === 'paused' || !!task?.run_pause || run.stopReason === 'paused_by_stop' || isTaskFencedOrPaused(run.ctx, run.id));
+      if (!isPaused && run.stopStatus && run.id && decision.abort_propagates && !run.engineDelivers &&
           !terminal(snapshots.get(run.id))) {
         // Foreground abort propagation may finish asynchronously. After native
         // background promotion (or revival), the returned call no longer owns
@@ -351,16 +430,19 @@ export function createTransport(pi, { ledger, decision = TRANSPORT_DECISION, now
           await ended;
         } finally { snapshotListeners.delete(inspect); }
       }
-      const task = run.id ? snapshots.get(run.id) : undefined;
       const stuck = result.status === 'answered' && !terminal(task);
-      if (run.id && ((!live && result.status === 'answered') ||
+      if (run.id && !isPaused && ((!live && result.status === 'answered') ||
           stuck ||
           (result.status !== 'answered' && (result.status !== 'unavailable' || ledger.request(run.request_id)?.model_called)))) {
         // Aborts proven to propagate need no extra cancel if the child is already
         // terminal and gone. retire() verifies that via a single status read.
         if (run.retirement) {
-          await run.retirement;
-          if (run.retirementError) throw run.retirementError;
+          try {
+            await run.retirement;
+            if (run.retirementError) throw run.retirementError;
+          } catch (err) {
+            if (!isPaused) throw err;
+          }
         } else await retire(run.ctx, stuck ? 'stuck_record' : result.status, [run.id]);
         if (stuck) {
           append('stuck_record_retired', { oracle_task_id: run.id, request_id: run.request_id }, run.job);
@@ -372,6 +454,7 @@ export function createTransport(pi, { ledger, decision = TRANSPORT_DECISION, now
       lifecycle(run.request_id, 'cleanup', 'fulfilled');
       return {
         ...result, task: undefined, path: run.path ?? 'spawn', oracle_task_id: run.id ?? null,
+        ...(run.stopReason || isPaused ? { reason: run.stopReason ?? result.reason ?? 'paused_by_stop' } : {}),
         model_called: ledger.request(run.request_id).model_called,
         oracle_run_epoch: epoch(finalTask) ?? run.runEpoch ?? null, latency_ms: Math.max(0, now() - run.started),
         main_cache_wait_exceeded: Number.isFinite(budget) && now() - run.started > budget * 1000,
@@ -388,7 +471,10 @@ export function createTransport(pi, { ledger, decision = TRANSPORT_DECISION, now
       lifecycle(run.request_id, 'execute', 'rejected', error.code ?? 'native_or_cleanup_rejected');
       // Native rejection is a terminal result, not a rejected cancellation
       // promise. Preserve paid attempts and retire any id learned from snapshots.
-      if (run.id) {
+      const task = run.id ? snapshots.get(run.id) : undefined;
+      const isPaused = (run.stopStatus === 'cancelled' || failed.status === 'cancelled') &&
+        (task?.status === 'paused' || !!task?.run_pause || run.stopReason === 'paused_by_stop' || isTaskFencedOrPaused(run.ctx, run.id));
+      if (run.id && !isPaused) {
         try {
           if (run.retirement) {
             await run.retirement;
@@ -403,7 +489,10 @@ export function createTransport(pi, { ledger, decision = TRANSPORT_DECISION, now
         }
       }
       return {
-        ...failed, status: run.stopStatus ?? failed.status, path: run.path ?? 'spawn',
+        ...failed,
+        status: run.stopStatus ?? failed.status,
+        ...(run.stopReason || isPaused ? { reason: run.stopReason ?? failed.reason ?? 'paused_by_stop' } : {}),
+        path: run.path ?? 'spawn',
         model_called: ledger.request(run.request_id).model_called,
         oracle_task_id: run.id ?? null, oracle_run_epoch: run.runEpoch ?? null,
         latency_ms: Math.max(0, now() - run.started),
@@ -426,12 +515,12 @@ export function createTransport(pi, { ledger, decision = TRANSPORT_DECISION, now
       return permit.tool_call_id === event.toolCallId;
     },
     get running() { return active ? { request_id: active.request_id, oracle_task_id: active.id, started_at: active.started } : null; },
-    consult({ ctx, request_id, prompt, signal, beforeDispatch }) {
+    consult({ ctx, request_id, prompt, signal, beforeDispatch, advisor, isConsult = false }) {
       if (active) return Promise.resolve({ status: 'busy', model_called: false });
       if (getSessionStatus() !== 'lead') return Promise.resolve({ status: 'session_not_ready', model_called: false });
       const job = ledger.state.job;
       if (job?.status !== 'active') return Promise.resolve({ status: 'no_active_job', model_called: false });
-      const run = { ctx, request_id, prompt, signal, beforeDispatch, job, nativeAttempt: 0,
+      const run = { ctx, request_id, prompt, signal, beforeDispatch, advisor, isConsult, job, nativeAttempt: 0,
         started: now(), controller: new AbortController() };
       active = run;
       run.promise = execute(run);

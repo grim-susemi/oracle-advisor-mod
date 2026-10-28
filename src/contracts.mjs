@@ -29,4 +29,5 @@ export const RECEIPT_FIELDS = Object.freeze([
   'analysis_chars', 'analysis_path', 'provider_stop_reason', 'engine_completion_chars',
   'model', 'usage_status', 'input_tokens', 'output_tokens', 'reasoning_tokens',
   'verdict', 'verdict_changed_direction', 'same_failure_recurred_after', 'calls_remaining', 'failure_digest', 'redirect_id',
+  'session_id', 'advisor_profile', 'advisor_source', 'advisor_reason', 'driver_agent', 'main_family', 'task_nature', 'auto_run_id',
 ]);

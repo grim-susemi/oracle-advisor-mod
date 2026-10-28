@@ -1,10 +1,12 @@
-import { appendFileSync, mkdirSync } from 'node:fs';
+import { appendFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { CONSULT_CAP, WORK_CONSULTS, RECEIPT_FIELDS } from './contracts.mjs';
 import { buildDossier, buildOraclePrompt, parseVerdict, saveAdvice } from './protocol.mjs';
 import { effectiveOracleTools } from '../scripts/oracle-policy.mjs';
 import { consultPending } from './ledger.mjs';
+import { familyOf, validateRouting, resolveAdvisor } from './seams.mjs';
+import { isTaskFencedOrPaused } from './transport.mjs';
 
 const agentDirectory = () => process.env.SENPI_CODING_AGENT_DIR ?? process.env.OMO_CODING_AGENT_DIR;
 const remaining = job => CONSULT_CAP - (job?.counters.consults ?? 0);
@@ -20,8 +22,15 @@ const artifactId = id => /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(id) &&
   !id.endsWith('.') && !/^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.|$)/i.test(id)
   ? id : createHash('sha256').update(id).digest('hex');
 
-export function registerConsultTool(pi, runtime, { agentDir = agentDirectory, now = Date.now, onCheckpoint } = {}) {
+export function registerConsultTool(pi, runtime, {
+  agentDir = agentDirectory,
+  now = Date.now,
+  onCheckpoint,
+  getDriver = null,
+  getNature = null,
+} = {}) {
   const { ledger } = runtime;
+  const notifiedSessions = new Set();
   const nested = new Set();
   let pending;
   const append = (type, data, job = ledger.jobFacts) => {
@@ -31,12 +40,14 @@ export function registerConsultTool(pi, runtime, { agentDir = agentDirectory, no
     }, { snapshot: false });
   };
   runtime.consult = {
-    invalidate(status) {
+    invalidate(status, reason) {
       if (!pending || pending.terminal) return;
       pending.status ??= status;
+      pending.reason ??= reason;
       const previous = ledger.request(pending.request_id);
       if (previous && consultPending(previous)) {
         const record = { ...previous, ...pending.record, status: pending.status,
+          ...(pending.reason ? { reason: pending.reason } : {}),
           analysis_path: null, analysis_chars: 0 };
         for (const key of ['verdict', 'reasons', 'stop_id', 'redirect_id', 'downgrade']) delete record[key];
         record.verdict_changed_direction = null;
@@ -71,6 +82,31 @@ export function registerConsultTool(pi, runtime, { agentDir = agentDirectory, no
       }) + '\n');
     } catch { /* Optional accounting I/O must not fail the main's tool. */ }
   }
+    function loadRoutingTable(sessionId, ctx) {
+      const dir = agentDir();
+      if (!dir) return { table: null, status: 'table_absent' };
+      const filePath = join(dir, 'oracle-advisor', 'routing.json');
+      if (!existsSync(filePath)) return { table: null, status: 'table_absent' };
+      try {
+        const content = readFileSync(filePath, 'utf8');
+        const json = JSON.parse(content);
+        const val = validateRouting(json);
+        if (!val.valid) {
+          if (!notifiedSessions.has(sessionId)) {
+            notifiedSessions.add(sessionId);
+            ctx?.ui?.notify?.(`oracle-advisor: invalid routing.json (${val.error}), using legacy dispatch`, 'warning');
+          }
+          return { table: null, status: 'table_invalid' };
+        }
+        return { table: json, status: 'valid' };
+      } catch (err) {
+        if (!notifiedSessions.has(sessionId)) {
+          notifiedSessions.add(sessionId);
+          ctx?.ui?.notify?.(`oracle-advisor: invalid routing.json (${err.message}), using legacy dispatch`, 'warning');
+        }
+        return { table: null, status: 'table_invalid' };
+      }
+    }
   function base(request_id, kind, job) {
     return {
       job_id: job?.job_id ?? null, job_epoch: job?.job_epoch ?? null,
@@ -81,6 +117,8 @@ export function registerConsultTool(pi, runtime, { agentDir = agentDirectory, no
       input_tokens: null, output_tokens: null, reasoning_tokens: null,
       verdict_changed_direction: null, same_failure_recurred_after: null,
       calls_remaining: remaining(job),
+      session_id: null, advisor_profile: null, advisor_source: null, advisor_reason: null,
+      driver_agent: null, main_family: null, task_nature: null, auto_run_id: null,
     };
   }
   function deliver(record, analysis = '') {
@@ -104,7 +142,18 @@ export function registerConsultTool(pi, runtime, { agentDir = agentDirectory, no
     return result(details, text);
   }
   function refuse(status, request_id, kind, job) {
-    const record = { ...base(request_id, kind, job), status };
+    const admittedRecord = ledger.request(request_id);
+    const advisor = admittedRecord?.advisor ?? null;
+    const record = {
+      ...base(request_id, kind, job), status, advisor,
+      advisor_profile: advisor?.profile ?? null,
+      advisor_source: advisor?.source ?? null,
+      advisor_reason: advisor?.reason ?? null,
+      driver_agent: advisor?.driver_agent ?? null,
+      main_family: advisor?.main_family ?? null,
+      task_nature: advisor?.nature ?? null,
+      auto_run_id: job?.auto?.run_id ?? null,
+    };
     const response = result({
       status, calls_remaining: record.calls_remaining, path: null, analysis_path: null, analysis_chars: 0,
     }, status === 'oracle_not_readonly' ? 'oracle_not_readonly; no oracle started' : `oracle ${status}`);
@@ -122,8 +171,19 @@ export function registerConsultTool(pi, runtime, { agentDir = agentDirectory, no
     const started = now();
     const failure = job.trigger_state?.predecessor?.outcome === 'failure'
       ? job.trigger_state.predecessor : null;
+    const admittedRecord = ledger.request(request_id);
+    const advisor = admittedRecord?.advisor ?? null;
     const record = {
       ...base(request_id, args.kind, job), slot,
+      advisor,
+      session_id: operation.session_id ?? null,
+      advisor_profile: advisor?.profile ?? null,
+      advisor_source: advisor?.source ?? null,
+      advisor_reason: advisor?.reason ?? null,
+      driver_agent: advisor?.driver_agent ?? null,
+      main_family: advisor?.main_family ?? null,
+      task_nature: advisor?.nature ?? null,
+      auto_run_id: job?.auto?.run_id ?? null,
       progress_revision: job.progress_revision,
       failure_key: failure?.key ?? null, failure_class: failure?.error_class ?? null,
       failure_call_id: failure?.tool_call_id ?? null,
@@ -186,7 +246,8 @@ export function registerConsultTool(pi, runtime, { agentDir = agentDirectory, no
       operation.phase = 'running';
       checkpoint('transport');
       const transportResult = await runtime.transport.consult({
-        ctx, request_id, signal, prompt: buildOraclePrompt(dossier),
+        ctx, request_id, signal, advisor, prompt: buildOraclePrompt(dossier),
+        isConsult: true,
         beforeDispatch: () => {
           checkpoint('dispatch');
           append('consult_dispatched', { request_id }, job);
@@ -194,6 +255,7 @@ export function registerConsultTool(pi, runtime, { agentDir = agentDirectory, no
       });
       const { answer, task: _task, ...accounting } = transportResult;
       Object.assign(record, accounting);
+      if (record.status === 'cancelled') record.reason = transportResult.reason ?? record.reason ?? null;
       checkpoint('transport_ready');
       if (record.status === 'answered') {
         const parsed = parseVerdict(answer, { seed: job.seed, provider_stop_reason: record.provider_stop_reason });
@@ -239,6 +301,7 @@ export function registerConsultTool(pi, runtime, { agentDir = agentDirectory, no
       checkpoint('abort');
       record.status = operation.status ?? (['timed_out', 'cancelled', 'quota'].includes(error.code)
         ? error.code : 'unavailable');
+      if (record.status === 'cancelled') record.reason = operation.reason ?? null;
       record.latency_ms = Math.max(0, now() - started);
       record.analysis_path = null;
       record.analysis_chars = 0;
@@ -330,10 +393,30 @@ export function registerConsultTool(pi, runtime, { agentDir = agentDirectory, no
       const refusal = !valid ? 'invalid_arguments' : job?.status !== 'active' ? 'no_active_job' :
         pending || runtime.transport.running ? 'busy' :
           remaining(job) <= 0 || slot === 'work' && job.counters.work >= WORK_CONSULTS ? 'cap_exhausted' : null;
+      let advisor = null;
+      if (refusal === null) {
+        const sessionId = ctx?.sessionManager?.getSessionId?.();
+        const { table, status } = loadRoutingTable(sessionId, ctx);
+        const mainFamily = familyOf(ctx?.model?.id);
+        const driverInfo = getDriver ? getDriver(ctx) : null;
+        const driver = driverInfo?.agentId ?? (typeof driverInfo === 'string' ? driverInfo : null);
+        const nature = getNature ? getNature(sessionId, args.kind) : null;
+        const resolved = resolveAdvisor({ kind: args.kind, mainFamily, driver, nature, table });
+        advisor = {
+          profile: resolved.profile ?? null,
+          model: resolved.model ?? null,
+          family: resolved.profile ? (table?.profiles?.[resolved.profile]?.family ?? null) : null,
+          source: resolved.source,
+          reason: status !== 'valid' ? status : resolved.reason,
+          driver_agent: driver,
+          main_family: mainFamily,
+          nature,
+        };
+      }
       // One synchronous admission reserves an eligible slot before scheduling.
       // Refused identities are durable too, but never reserve a slot.
       if (!previous) append('consult_admitted', {
-        ...base(request_id, args?.kind, job), status: 'admitted', slot: refusal ? null : slot,
+        ...base(request_id, args?.kind, job), status: 'admitted', slot: refusal ? null : slot, advisor,
       }, job);
       if (refusal) return refuse(refusal, request_id, args?.kind, job);
       const controller = new AbortController();
@@ -343,7 +426,10 @@ export function registerConsultTool(pi, runtime, { agentDir = agentDirectory, no
         admission_entry_id: ctx.sessionManager.getBranch().at(-1)?.id };
       const onAbort = () => {
         current.stopped.resolve(null);
-        runtime.consult.invalidate(current.status ?? 'cancelled');
+        const admitted = ledger.request(current.request_id);
+        const taskId = admitted?.oracle_task_id;
+        const paused = isTaskFencedOrPaused(current.ctx, taskId);
+        runtime.consult.invalidate(current.status ?? 'cancelled', paused ? 'paused_by_stop' : current.reason);
       };
       current.signal.addEventListener('abort', onAbort, { once: true });
       pending = current;
