@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 
-export const installedLoaderPath = 'C:/Users/USER/.omo-stable-500/staging/memory-rollback-5.1.34-r1/package/plugin/runtime/task-config/index.js';
+export const installedLoaderPath = 'C:/Users/USER/.omo-stable-500/staging/memory-rollback-5.1.48-r1/package/plugin/runtime/task-config/index.js';
 const source = readFileSync(installedLoaderPath, 'utf8');
 export const installedLoaderHash = createHash('sha256').update(source).digest('hex');
 // Execute the installed bundle unchanged, adding only test-visible exports.

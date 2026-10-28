@@ -116,8 +116,8 @@ export function discoverHost(environment = process.env) {
   // USERPROFILE is the stable profile's HOME here, not the installation owner.
   const globalRoot = resolve(dirname(engine), '../../../..');
   const lane = environment.OMO_STABLE_ROOT ?? 'C:/Users/USER/.omo-stable-500';
-  const launcher = environment.OMO_STABLE_REENTRY ?? environment.OMO_BIN ?? join(lane, 'staging/omo-memory-selector-entry-r19.mjs');
-  const plugin = environment.OMO_STABLE_PLUGIN ?? join(lane, 'staging/memory-rollback-5.1.34-r1/package/plugin');
+  const launcher = environment.OMO_STABLE_REENTRY ?? environment.OMO_BIN ?? join(lane, 'staging/omo-memory-selector-entry-r24.mjs');
+  const plugin = environment.OMO_STABLE_PLUGIN ?? join(lane, 'staging/memory-rollback-5.1.48-r1/package/plugin');
   for (const path of [launcher, engine, plugin]) {
     if (!existsSync(path)) throw typedError('host_not_found', path);
   }

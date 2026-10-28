@@ -4,13 +4,13 @@ Discovery on 2026-10-17:
 
 - Owner lane: `C:/Users/USER/.omo-stable-500`.
 - Launcher from this session's `OMO_BIN` / `OMO_STABLE_REENTRY`:
-  `C:/Users/USER/.omo-stable-500/staging/omo-memory-selector-entry-r19.mjs`.
+  `C:/Users/USER/.omo-stable-500/staging/omo-memory-selector-entry-r24.mjs`.
 - `node <launcher> --help` exits 0 and advertises `--extension, -e <path>`,
   `--mode rpc`, `--session`, `--session-dir`, and `--no-extensions`.
 - Engine: `C:/Users/USER/.bun/install/global/node_modules/@code-yeongyu/senpi/dist/bundle/cli.js`
-  (Senpi 2026.10.16). Pinned PiOMO plugin:
-  `C:/Users/USER/.omo-stable-500/staging/memory-rollback-5.1.34-r1/package/plugin`
-  (omo-ai 5.1.34).
+  (Senpi 2026.10.25-2). Pinned PiOMO plugin:
+  `C:/Users/USER/.omo-stable-500/staging/memory-rollback-5.1.48-r1/package/plugin`
+  (omo-ai 5.1.48).
 
 ## Loading mechanism and ownership
 

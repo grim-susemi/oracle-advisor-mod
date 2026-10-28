@@ -131,8 +131,9 @@ const file = (value, relative, cwd) => operand(value) && identity(value, cwd) ==
 function hostArguments(args, environment, cwd, host) {
   if (matches(args, [args[0], '--help']) || matches(args, [args[0], '--version'])) return true;
   if (identity(args[0], cwd) !== identity(host.engine)) return false;
-  const builtins = args[10] === '--no-builtin-tools';
-  const candidate = args[builtins ? 16 : 15];
+  const builtins = args.includes('--no-builtin-tools');
+  const extIdx = args.lastIndexOf('--extension');
+  const candidate = extIdx !== -1 ? args[extIdx + 1] : null;
   const caseFile = name => file(candidate, `qa/${name}`, cwd);
   const missingExtension = pathOperand(candidate) &&
     /^\.omo\/evidence\/[A-Za-z0-9_-]+\/task-1-piomo-oracle-advisor-mod\/host-missing-ext-[^/]+\/missing-extension\.mjs$/
@@ -140,8 +141,10 @@ function hostArguments(args, environment, cwd, host) {
   const builtinCases = ['cases/acceptance-extension.mjs', 'stop-extension.mjs', 'nudger-extension.mjs', 'triggers-probe-extension.mjs'];
   if (!builtins && !builtinCases.some(caseFile)) return false;
   const real = args[args.indexOf('--provider') + 1] === 'ollama';
+  const withSkills = !args.includes('--no-skills') && caseFile('cases/probe-r3-seams-extension.mjs');
   const base = [
-    args[0], '--mode', 'rpc', '--offline', '--no-extensions', '--no-skills',
+    args[0], '--mode', 'rpc', '--offline', '--no-extensions',
+    ...(withSkills ? [] : ['--no-skills']),
     '--no-prompt-templates', '--no-context-files', '--no-themes', '--no-approve',
     ...(builtins ? ['--no-builtin-tools'] : []),
     '--extension', value => pathOperand(value) && identity(value, cwd) === identity(host.plugin),
@@ -172,9 +175,10 @@ function hostArguments(args, environment, cwd, host) {
     for (const provider of providerTails) tails.push([...provider, '--system-prompt', operand]);
   } else if (['probe-extension.mjs', 'cases/lifecycle-extension.mjs', 'cases/seed-extension.mjs',
     'consult-extension.mjs', 'lifecycle-retirement-extension.mjs', 'oracle-policy-extension.mjs',
-    'stop-extension.mjs', 'transport-extension.mjs', 'capability-extension.mjs'].some(caseFile) || missingExtension) {
+    'stop-extension.mjs', 'transport-extension.mjs', 'capability-extension.mjs',
+    'cases/probe-r3-seams-extension.mjs'].some(caseFile) || missingExtension) {
     for (const provider of providerTails) tails.push([...provider, '--tools', tools, '--system-prompt', operand]);
-    if (caseFile('probe-extension.mjs')) tails.push([]);
+    if (caseFile('probe-extension.mjs') || caseFile('cases/probe-r3-seams-extension.mjs')) tails.push([]);
   } else tails.push([]);
   return tails.some(tail => matches(args, [...base, ...tail]));
 }

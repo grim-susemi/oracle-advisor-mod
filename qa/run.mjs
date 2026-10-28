@@ -80,6 +80,10 @@ if (values.case === 'child-entry') {
   await (await import('./cases/child-entry.mjs')).runChildEntry(values);
   process.exit(process.exitCode ?? 0);
 }
+if (values.case === 'probe-r3-seams') {
+  await (await import('./cases/probe-r3-seams.mjs')).runProbeR3SeamsCase(values);
+  process.exit(process.exitCode ?? 0);
+}
 if (['dossier-real', 'dossier-nonrepo'].includes(values.case)) {
   await (await import(`./cases/${values.case}.mjs`)).run({ attempt: values.attempt });
   process.exit(process.exitCode ?? 0);
