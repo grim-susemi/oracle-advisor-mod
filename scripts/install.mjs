@@ -2,7 +2,7 @@ import {
   cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync,
   renameSync, rmSync, unlinkSync, writeFileSync,
 } from 'node:fs';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -35,9 +35,10 @@ export function install({
   const base = join(agentDir, 'oracle-advisor');
   const integration = join(base, 'integration');
   const currentPath = join(base, 'current.json');
+  const routingPath = join(base, 'routing.json');
   const extensions = join(agentDir, 'extensions');
   const shimPath = join(extensions, 'omo-oracle-advisor.js');
-  for (const path of [base, integration, currentPath, extensions, shimPath]) refuseLink(path);
+  for (const path of [base, integration, currentPath, routingPath, extensions, shimPath]) refuseLink(path);
   // Check ownership before policy preflight or creating even a directory.
   if (existsSync(shimPath) && readFileSync(shimPath, 'utf8').split(/\r?\n/, 1)[0] !== MARKER) {
     throw fail('foreign_shim', 'Refusing non-managed omo-oracle-advisor.js; nothing changed.');
@@ -51,18 +52,53 @@ export function install({
       ? uninstallOraclePolicy({ configPath, manifestPath: current.policy.manifest_path, dryRun: true })
       : { status: 'unchanged' };
     if (policy.status === 'drift') throw fail('policy_drift', 'Managed policy drift; shim and config left intact.');
+    let routingAction = 'none';
+    if (existsSync(routingPath)) {
+      const routingBytes = readFileSync(routingPath);
+      const currentHash = createHash('sha256').update(routingBytes).digest('hex');
+      const expectedDefaultHash = current?.routing?.default_sha256;
+      if (expectedDefaultHash && currentHash === expectedDefaultHash) {
+        routingAction = 'removed';
+      } else {
+        routingAction = 'routing_kept_modified';
+      }
+    }
     if (!dryRun) {
       if (current?.policy?.manifest_path && existsSync(current.policy.manifest_path)) {
         policy = uninstallOraclePolicy({ configPath, manifestPath: current.policy.manifest_path });
       }
       if (existsSync(shimPath)) unlinkSync(shimPath);
+      if (routingAction === 'removed' && existsSync(routingPath)) {
+        unlinkSync(routingPath);
+      }
     }
-    return { status: dryRun ? 'dry_run' : 'uninstalled', agent_dir: agentDir,
-      shim_path: shimPath, policy, kept: ['generations', 'current.json', 'policy backups and manifests', 'logs'] };
+    const kept = ['generations', 'current.json', 'policy backups and manifests', 'logs'];
+    if (routingAction === 'routing_kept_modified') kept.push('routing.json');
+    return {
+      status: dryRun ? 'dry_run' : 'uninstalled', agent_dir: agentDir,
+      shim_path: shimPath, policy, routing: routingAction, kept,
+    };
   }
   if (!existsSync(join(dist, ENTRY))) throw fail('dist_missing', 'Run npm run build first.');
+  const defaultRoutingSource = join(dist, 'config/routing.default.json');
+  if (!existsSync(defaultRoutingSource)) {
+    throw fail('routing_default_missing', 'Generation dist is missing config/routing.default.json.');
+  }
+  const defaultRoutingBytes = readFileSync(defaultRoutingSource);
+  const defaultRoutingSha = createHash('sha256').update(defaultRoutingBytes).digest('hex');
+
   const files = runtimeFiles(dist);
   const sha256 = fileHashes(dist, files);
+
+  const routingExists = existsSync(routingPath);
+  const routingStatus = routingExists ? 'preserved' : 'created';
+  const routingSha = routingExists
+    ? createHash('sha256').update(readFileSync(routingPath)).digest('hex')
+    : defaultRoutingSha;
+  const manifestDefaultSha = routingExists
+    ? (current?.routing?.default_sha256 ?? defaultRoutingSha)
+    : defaultRoutingSha;
+
   const numbers = existsSync(integration) ? readdirSync(integration)
     .map(name => /^generation-(\d{6})$/.exec(name)).filter(Boolean).map(match => Number(match[1])) : [];
   const generation = `generation-${String(Math.max(0, ...numbers) + 1).padStart(6, '0')}`;
@@ -81,6 +117,7 @@ export function install({
   const report = {
     status: dryRun ? 'dry_run' : 'installed', generation, generation_path: generationPath,
     agent_dir: agentDir, shim_path: shimPath, entry: ENTRY, sha256, policy,
+    routing: { path: routingPath, status: routingStatus, sha256: routingSha },
   };
   if (dryRun) return report;
   mkdirSync(generationPath, { recursive: true });
@@ -90,14 +127,19 @@ export function install({
     cpSync(join(dist, file), target);
   }
   report.policy = installOraclePolicy(policyOptions);
+  mkdirSync(base, { recursive: true });
   const manifest = {
     generation, installed_at: new Date().toISOString(), entry: ENTRY, sha256,
     policy: { config_path: configPath,
       manifest_path: existsSync(manifestPath) ? manifestPath : null },
+    routing: { status: routingStatus, sha256: routingSha, default_sha256: manifestDefaultSha },
   };
   replaceWrite(currentPath, JSON.stringify(manifest, null, 2) + '\n');
   mkdirSync(extensions, { recursive: true });
   replaceWrite(shimPath, `${MARKER}\nexport { default } from '../oracle-advisor/integration/${generation}/${ENTRY}';\n`);
+  if (!routingExists) {
+    replaceWrite(routingPath, defaultRoutingBytes.toString('utf8'));
+  }
   return report;
 }
 

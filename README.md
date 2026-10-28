@@ -25,6 +25,9 @@ Each install creates a new, immutable
 `<agentDir>/oracle-advisor/integration/generation-NNNNNN/`. The managed
 `extensions/omo-oracle-advisor.js` shim loads that generation;
 `oracle-advisor/current.json` records the entry and every runtime file's SHA-256.
+A default routing table (`config/routing.default.json`) is installed to
+`<agentDir>/oracle-advisor/routing.json` when absent; an existing table is preserved
+byte for byte and reported in `current.json`.
 A same-named foreign shim is refused before any change.
 
 Installation also applies the exclusive read-only oracle tools policy to the
@@ -57,8 +60,27 @@ Task child sessions are excluded. Briefing-like hooks compose in either load
 order; both handlers' settle entries, prompt blocks and brief result edits survive.
 
 Set `OMO_ORACLE_ADVISOR=0` before starting the host to disable every advisor
-hook and tool. One `disabled-by-env` receipt is written. Normal event receipts
-are in `<agentDir>/logs/oracle-advisor.jsonl`.
+hook and tool. One `disabled-by-env` receipt is written.
+Set `OMO_ORACLE_AUTO_ATLAS=0` to disable automatic advisor jobs when Atlas runs
+interactive `/ulw-execute` or `/skill:ulw-execute` commands (manual `/oracle on|off|end`
+remains fully functional; `/skill:ulw-plan` ends a run with reason plan_request).
+Normal event receipts are in `<agentDir>/logs/oracle-advisor.jsonl`.
+
+## Routing table
+
+Advisor routing is configured via `<agentDir>/oracle-advisor/routing.json`.
+When absent or invalid (which logs a notice per session with receipt reason
+`table_invalid`), the advisor defaults to standard Claude dispatch.
+When present, consults pick an advisor profile based on:
+1. Task nature (`by_nature.design` or `by_nature.lowlevel`).
+2. Per-agent override (`by_agent[driver_agent][kind]`).
+3. Main-model family (`by_family[mainFamily][kind]`).
+4. Fallback to default dispatch.
+
+To edit routing, modify `<agentDir>/oracle-advisor/routing.json` directly. The JSON
+schema defines profiles (such as `claude` and `gpt`), family mappings, and nature
+overrides. Edits survive generation upgrades and uninstall (a modified table is kept
+as `routing_kept_modified`).
 
 ## Remove
 
@@ -69,9 +91,11 @@ node scripts/install.mjs --agent-dir "<agentDir>" --uninstall
 
 Removal restores only unchanged managed oracle-policy ranges and removes only
 the managed shim. Policy drift refuses removal without deleting the shim.
-Unrelated configuration edits survive. Generations, `current.json`, receipts,
-policy manifests and backups remain for inspection. Reload or restart the host
-after installation or removal.
+If `<agentDir>/oracle-advisor/routing.json` matches the installed default SHA-256,
+it is removed; if it has been modified, it is preserved and reported as
+`routing_kept_modified`. Unrelated configuration edits survive. Generations,
+`current.json`, receipts, policy manifests and backups remain for inspection.
+Reload or restart the host after installation or removal.
 
 ## Verification
 

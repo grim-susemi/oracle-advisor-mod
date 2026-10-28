@@ -206,7 +206,7 @@ export function installOraclePolicy({
   const delta = plan(before, decision, allProfiles);
   const effective = effectiveOracleTools(cwd, { env });
   const report = {
-    version: 1, status: dryRun ? 'dry_run' : delta.ranges.length ? 'applied' : 'unchanged',
+    version: 1, status: delta.ranges.length === 0 ? 'unchanged' : dryRun ? 'dry_run' : 'applied',
     config_path: configPath, manifest_path: manifestPath, all_profiles: allProfiles,
     allowlist_key: decision.allowlist_key, allowlist_paths: decision.allowlist_paths,
     before_sha256: sha(before), after_sha256: sha(delta.output), ranges: delta.ranges,
@@ -238,17 +238,12 @@ export function uninstallOraclePolicy({ configPath, manifestPath = `${configPath
     const parent = nodeAt(root, range.path.slice(0, -1));
     const property = parent?.properties?.find(item => item.key === range.path.at(-1));
     if (!property) return { ...range, status: 'drift', reason: 'Managed key is missing.' };
+    const replacement = JSON.stringify(READONLY_ORACLE_TOOLS);
+    if (JSON.stringify(property.node.value) !== replacement) {
+      return { ...range, status: 'drift', reason: 'Managed range no longer matches expected policy.' };
+    }
     const start = range.kind === 'insert' ? property.start : property.node.start;
     const end = property.node.end;
-    const current = text.slice(start, end);
-    // Separators belong to the current object structure, not to tool policy.
-    // This also accepts version-1 manifests that included an inserted comma.
-    const managed = range.kind === 'insert' && range.after_text.endsWith(',')
-      ? range.after_text.slice(0, -1) : range.after_text;
-    const expectedHash = managed === range.after_text ? range.after_sha256 : sha(managed);
-    if (current !== managed || sha(current) !== expectedHash) {
-      return { ...range, status: 'drift', reason: 'Managed range no longer matches installed bytes.' };
-    }
     edits.push({ start, end, text: range.before_text });
     if (range.kind === 'insert') {
       const index = parent.properties.indexOf(property);

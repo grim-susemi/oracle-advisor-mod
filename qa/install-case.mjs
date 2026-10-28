@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileHashes } from '../scripts/build.mjs';
@@ -76,7 +76,35 @@ export async function runInstallCase(values) {
     mkdirSync(join(sandbox.agentDir, 'extensions'), { recursive: true });
     writeJson(join(sandbox.agentDir, 'unrelated.json'), { preserve: true });
     const shimPath = join(sandbox.agentDir, 'extensions/omo-oracle-advisor.js');
-    if (values.case === 'install-foreign-shim') {
+    const routingPath = join(sandbox.agentDir, 'oracle-advisor/routing.json');
+    if (values.case === 'install-routing-preserve') {
+      mkdirSync(join(sandbox.agentDir, 'oracle-advisor'), { recursive: true });
+      const customRoutingContent = '{\n  "v": 1,\n  "custom": "modified-table-test"\n}\n';
+      writeFileSync(routingPath, customRoutingContent);
+      const before = snapshot(sandbox.stateDir);
+      receipt.before_sha256 = before;
+      receipt.config_before = readFileSync(receipt.config_path, 'utf8');
+
+      receipt.install = await installer('install');
+      assert.equal(receipt.install.status, 'installed');
+      assert.equal(receipt.install.routing.status, 'preserved');
+      assert.equal(readFileSync(routingPath, 'utf8'), customRoutingContent);
+      const current = readJson(join(sandbox.agentDir, 'oracle-advisor/current.json'));
+      assert.equal(current.routing.status, 'preserved');
+
+      receipt.uninstall = await installer('uninstall', ['--uninstall']);
+      assert.equal(receipt.uninstall.status, 'uninstalled');
+      assert.equal(receipt.uninstall.routing, 'routing_kept_modified');
+      assert.equal(existsSync(routingPath), true);
+      assert.equal(readFileSync(routingPath, 'utf8'), customRoutingContent);
+      assert.equal(existsSync(shimPath), false);
+
+      receipt.proofs = {
+        preexisting_routing_preserved_on_install: true,
+        modified_routing_preserved_on_uninstall: true,
+        shim_removed: true,
+      };
+    } else if (values.case === 'install-foreign-shim') {
       writeJson(shimPath, { foreign_owner: true });
       const before = snapshot(sandbox.stateDir);
       receipt.refusal = await installer('foreign-install', [], 1);

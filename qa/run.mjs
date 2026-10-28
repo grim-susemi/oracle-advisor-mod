@@ -28,7 +28,7 @@ if (['consult-admission-replay', 'consult-native-rejection'].includes(values.cas
   await (await import('./consult-lifecycle-case.mjs')).runConsultLifecycleCase(values);
   process.exit(process.exitCode ?? 0);
 }
-if (['install-roundtrip', 'install-foreign-shim'].includes(values.case)) {
+if (['install-roundtrip', 'install-foreign-shim', 'install-routing-preserve'].includes(values.case)) {
   await (await import('./install-case.mjs')).runInstallCase(values);
   process.exit(process.exitCode ?? 0);
 }
