@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "profiles": {
+    "claude": {},
+    "gpt": {
+      "model": "astra-high",
+      "family": "gpt"
+    }
+  },
+  "by_family": {
+    "claude": {
+      "work": "gpt",
+      "completion": "gpt"
+    },
+    "gpt": {
+      "work": "claude",
+      "completion": "claude"
+    },
+    "other": {
+      "work": "claude",
+      "completion": "gpt"
+    }
+  },
+  "by_agent": {},
+  "by_nature": {
+    "design": "claude",
+    "lowlevel": "gpt"
+  }
+}

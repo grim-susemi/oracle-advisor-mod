@@ -1,0 +1,26 @@
+[
+  {
+    "type": "custom",
+    "customType": "primary-agent/v1",
+    "data": {
+      "schemaVersion": 2,
+      "agentId": "atlas"
+    }
+  },
+  {
+    "type": "custom",
+    "customType": "primary-agent/v1",
+    "data": {
+      "schemaVersion": 1,
+      "agentId": "unknown-agent"
+    }
+  },
+  {
+    "type": "other",
+    "customType": "primary-agent/v1",
+    "data": {
+      "schemaVersion": 1,
+      "agentId": "atlas"
+    }
+  }
+]

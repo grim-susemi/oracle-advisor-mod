@@ -1,0 +1,28 @@
+{
+  "v": 1,
+  "profiles": {
+    "claude": {},
+    "gpt": {
+      "model": "chatgpt-subscription/gpt-6-astra:high",
+      "family": "gpt"
+    }
+  },
+  "by_family": {
+    "claude": {
+      "work": "gpt"
+    },
+    "gpt": {
+      "work": "claude",
+      "completion": "claude"
+    },
+    "other": {
+      "work": "claude",
+      "completion": "gpt"
+    }
+  },
+  "by_agent": {},
+  "by_nature": {
+    "design": "claude",
+    "lowlevel": "gpt"
+  }
+}

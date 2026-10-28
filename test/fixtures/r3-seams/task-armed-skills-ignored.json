@@ -1,0 +1,7 @@
+{
+  "category": "quick",
+  "load_skills": [
+    "debugging"
+  ],
+  "prompt": "Simple one-line typo fix with no loadout line"
+}

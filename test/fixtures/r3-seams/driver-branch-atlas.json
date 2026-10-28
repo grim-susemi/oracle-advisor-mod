@@ -1,0 +1,10 @@
+[
+  {
+    "type": "custom",
+    "customType": "primary-agent/v1",
+    "data": {
+      "schemaVersion": 1,
+      "agentId": "atlas"
+    }
+  }
+]

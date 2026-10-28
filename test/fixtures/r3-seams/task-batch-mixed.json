@@ -1,0 +1,12 @@
+{
+  "tasks": [
+    {
+      "category": "visual-engineering",
+      "prompt": "Fix the layout styling"
+    },
+    {
+      "category": "quick",
+      "prompt": "Fix bug in kernel\nLoadout: debugging"
+    }
+  ]
+}
