@@ -18,6 +18,8 @@ function setup(t, options = {}) {
   return { ...fake, runtime };
 }
 
+const atlasEntries = [{ type: 'custom', id: 'driver-atlas', customType: 'primary-agent/v1', data: { schemaVersion: 1, agentId: 'atlas' } }];
+
 test('commands persist open, pause, resume, end, and monotonically numbered jobs', async t => {
   const f = setup(t);
   await f.emit('session_start');
@@ -53,6 +55,22 @@ test('status returns machine data plus all owner-facing fields and cancel is ine
   const cancelled = await f.command('oracle', 'cancel');
   assert.equal(cancelled.status, 'no_consult_running');
   assert.equal(f.calls.appendEntry.length, count);
+
+  // Test /oracle on on an already active manual job does not append another job_resumed
+  await f.command('oracle', 'on');
+  assert.equal(f.calls.appendEntry.length, count);
+
+  // But on an active auto job, /oracle on appends job_resumed {by: 'owner'}
+  f.runtime.ledger.append({
+    type: 'job_opened', job_id: 'J2', job_epoch: 1,
+    auto: { run_id: 'auto-run-xyz', trigger: 'atlas_ulw_execute' },
+  });
+  const beforeAutoOn = f.calls.appendEntry.length;
+  await f.command('oracle', 'on');
+  const resumedEvent = f.calls.appendEntry.slice(beforeAutoOn).find(([, d]) => d.type === 'job_resumed');
+  assert.ok(resumedEvent);
+  assert.equal(resumedEvent[1].by, 'owner');
+  assert.equal(f.runtime.ledger.state.job.owner_touched, true);
 });
 
 test('malformed args and invalid override never alter ledger', async t => {
@@ -299,4 +317,159 @@ test('status displays the current broker roster without ask or notify', async t 
   assert.equal(absent.coordination, 'absent');
   assert.deepEqual(absent.coordination_roster, []);
   assert.ok(calls.every(method => method === 'peers'));
+});
+
+test('status displays auto state and Stop admission hold note', async t => {
+  const f = setup(t);
+  await f.emit('session_start');
+  f.runtime.ledger.append({
+    type: 'job_opened', job_id: 'J1', job_epoch: 1,
+    auto: { run_id: 'run-auto-123', trigger: 'atlas_ulw_execute' },
+  });
+  await f.command('oracle', 'status');
+  const before = f.calls.sendMessage.at(-1)[0].content;
+  assert.ok(before.includes('auto run run-auto-123, paused by none, owner touched false'));
+  assert.equal(before.includes('after a Stop the host admission hold'), false, 'no Stop yet, no hold note');
+
+  f.runtime.ledger.append({ type: 'stop_opened', stop_id: 's1' });
+  await f.command('oracle', 'status');
+  const msg = f.calls.sendMessage.at(-1)[0].content;
+  assert.ok(msg.includes('auto run run-auto-123, paused by none, owner touched false'));
+  assert.ok(msg.includes('after a Stop the host admission hold makes later consults end cancelled'));
+
+  // Pause by owner
+  await f.command('oracle', 'off');
+  await f.command('oracle', 'status');
+  const msgPaused = f.calls.sendMessage.at(-1)[0].content;
+  assert.ok(msgPaused.includes('auto run run-auto-123, paused by owner, owner touched true'));
+});
+
+test('real extension: the opening atlas turn carries the oracle rule and the auto job', async t => {
+  const f = setup(t, { entries: atlasEntries });
+  await f.emit('session_start');
+  await f.emit('input', { text: '/ulw-execute', source: 'interactive' });
+  const results = await f.emit('before_agent_start', { systemPrompt: 'base' });
+  assert.equal(f.runtime.ledger.state.job.job_id, 'J1');
+  assert.ok(f.runtime.ledger.state.job.auto);
+  const prompt = results.map(r => r?.systemPrompt ?? '').join('\n');
+  assert.ok(prompt.includes('Consult the oracle with oracle_consult'));
+});
+
+for (const reason of ['fork', 'resume']) {
+  test(`real extension: a ${reason} session_start ends the auto job on the next atlas turn`, async t => {
+    const f = setup(t, { entries: atlasEntries });
+    await f.emit('session_start');
+    await f.emit('input', { text: '/ulw-execute', source: 'interactive' });
+    await f.emit('before_agent_start', { systemPrompt: 'base' });
+    assert.equal(f.runtime.ledger.state.job.status, 'active');
+    await f.emit('session_start', { reason });
+    await f.emit('before_agent_start', { systemPrompt: 'base' });
+    assert.equal(f.runtime.ledger.state.job.status, 'closed');
+    const ended = f.calls.appendEntry.filter(([, d]) => d.type === 'job_ended');
+    assert.equal(ended.length, 1);
+    assert.equal(ended[0][1].reason, 'session_restarted');
+  });
+}
+
+test('manual /oracle on opens the nature job-open horizon', async t => {
+  const sessionId = 'nature-job-open-horizon';
+  const f = setup(t, { sessionId });
+  await f.emit('session_start');
+  const before = f.runtime.nature.getState(sessionId).jobOpen ?? null;
+  await f.command('oracle', 'on');
+  const after = f.runtime.nature.getState(sessionId).jobOpen;
+  assert.equal(before, null);
+  assert.equal(typeof after, 'number');
+});
+
+test('a real session_start event sets the nature sessionStart horizon', async t => {
+  const sessionId = 'nature-session-start-horizon';
+  const f = setup(t, { sessionId });
+  // one recorded task nature bumps the counter so the horizon is distinguishable from its initial 0
+  await f.emit('tool_call', { toolName: 'task', toolCallId: 't1', input: { category: 'visual-engineering', prompt: 'x' } });
+  await f.emit('session_start');
+  const state = f.runtime.nature.getState(sessionId);
+  assert.ok(state.counter > 0);
+  assert.equal(state.sessionStart, state.counter);
+});
+
+const consultTaskStub = async name => {
+  if (name !== 'task') throw new Error(`Unexpected tool: ${name}`);
+  const verdict = '{"verdict":"CONTINUE","reasons":[]}';
+  const details = { task_id: 't1', status: 'completed', residency_state: 'resident', final_response: verdict, notification: { run_epoch: 0 }, run_epoch: 0 };
+  return { toolCall: {}, result: { details, content: [{ type: 'text', text: verdict }] }, isError: false };
+};
+
+test('driver reaches the consult resolver through the real extension', async t => {
+  // consult reads routing.json from SENPI_CODING_AGENT_DIR; use the real shipped table
+  const b6AgentDir = mkdtempSync(join(tmpdir(), 'b6-agent-'));
+  mkdirSync(join(b6AgentDir, 'oracle-advisor'), { recursive: true });
+  writeFileSync(join(b6AgentDir, 'oracle-advisor', 'routing.json'), readFileSync(join(import.meta.dirname, '..', 'config', 'routing.default.json'), 'utf8'));
+  const prevAgentDir = process.env.SENPI_CODING_AGENT_DIR;
+  process.env.SENPI_CODING_AGENT_DIR = b6AgentDir;
+  t.after(() => {
+    if (prevAgentDir === undefined) delete process.env.SENPI_CODING_AGENT_DIR;
+    else process.env.SENPI_CODING_AGENT_DIR = prevAgentDir;
+    rmSync(b6AgentDir, { recursive: true, force: true });
+  });
+  const withDriver = setup(t, { entries: atlasEntries, executeTool: consultTaskStub });
+  const withoutDriver = setup(t, { executeTool: consultTaskStub });
+  for (const f of [withDriver, withoutDriver]) {
+    f.ctx.model = { id: 'claude-opus-5-5' };
+    await f.emit('session_start');
+    await f.emit('before_agent_start', {});
+    await f.emit('input', { text: 'design the new layout', source: 'interactive' });
+    await f.command('oracle', 'on');
+    await f.emit('tool_call', { toolName: 'task', toolCallId: 'n1', input: { category: 'visual-engineering', prompt: 'x' } });
+    await f.tools.get('oracle_consult').execute('c1', { kind: 'work', question: 'Review this design.' }, undefined, undefined, f.ctx);
+  }
+  const receipt = f => f.entries.find(e => e.data?.type === 'consult_finished')?.data;
+  const a = receipt(withDriver);
+  const b = receipt(withoutDriver);
+  assert.ok(a, 'driver run stores a consult receipt');
+  assert.ok(b, 'no-driver run stores a consult receipt');
+  assert.equal(a.driver_agent, 'atlas');
+  assert.equal(a.advisor_source, 'by_nature');
+  assert.equal(b.driver_agent, null);
+});
+
+test('extension registration order and status hub wiring at session_start and session_tree', async t => {
+  // Earlier tests share the process-global hub (--test-isolation=none); clear it before setup registers a fresh one.
+  delete globalThis[Symbol.for('omo.oracle-advisor.status.v1')];
+  const f = setup(t);
+  // Verify hooks were registered: commands, seed, driver, nature, consult, auto-atlas, STOP gate, nudger, hub
+  const onNames = f.calls.on.map(([name]) => name);
+  assert.ok(onNames.includes('before_agent_start'));
+  assert.ok(onNames.includes('tool_call'));
+  assert.ok(onNames.includes('input'));
+  assert.ok(onNames.includes('session_start'));
+  assert.ok(onNames.includes('session_tree'));
+  assert.ok(onNames.includes('session_shutdown'));
+  // Order, not presence: auto-atlas input precedes the stop gate, which precedes the nudger.
+  const autoInput = onNames.lastIndexOf('input');
+  const stopGate = onNames.indexOf('agent_start');
+  const nudger = onNames.indexOf('turn_end');
+  assert.ok(autoInput >= 0 && autoInput < stopGate, 'auto-atlas registers before the stop gate');
+  assert.ok(stopGate < nudger, 'stop gate registers before the nudger');
+
+  // Status hub snapshot exists after session_start
+  const statusKey = Symbol.for('omo.oracle-advisor.status.v1');
+  assert.equal(globalThis[statusKey]?.sessions?.['fake-session'], undefined);
+  await f.emit('session_start');
+  assert.ok(globalThis[statusKey]?.sessions);
+  const snap1 = globalThis[statusKey].sessions['fake-session'];
+  assert.equal(snap1.job_id, null);
+
+  // Open a job
+  await f.command('oracle', 'on');
+  const snap2 = globalThis[statusKey].sessions['fake-session'];
+  assert.equal(snap2.job_id, 'J1');
+  assert.equal(snap2.status, 'active');
+
+  // session_tree to empty branch publishes no-job snapshot
+  f.entries.length = 0;
+  await f.emit('session_tree');
+  const snap3 = globalThis[statusKey].sessions['fake-session'];
+  assert.equal(snap3.job_id, null);
+  assert.equal(snap3.status, null);
 });

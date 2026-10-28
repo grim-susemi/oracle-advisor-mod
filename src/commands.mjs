@@ -3,6 +3,7 @@ import { openStops } from './ledger.mjs';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { validateRouting } from './seams.mjs';
+import { noteJobOpen } from './nature.mjs';
 
 const USAGE = '/oracle on|off|end|status|cancel|override <stop_id> <reason>';
 export const CHILD_SESSION_MESSAGE = 'not available in task child sessions';
@@ -65,7 +66,12 @@ function statusText(snapshot) {
   const presence = `coordination ${coordination}; roster ${JSON.stringify(coordination_roster)}`;
   const tablePart = `; table ${table_state ?? 'absent'}`;
   const advisorPart = last_advisor ? `; last advisor ${last_advisor.profile ?? 'legacy'} (${last_advisor.source})` : '';
-  if (!job) return `oracle: no job; ${presence}${tablePart}${advisorPart}; live residency unavailable on this build`;
+  // The host admission hold only follows a Stop, so the note appears only once this job has recorded one.
+  const stopHoldNote = Object.keys(job?.stops ?? {}).length > 0
+    ? '; note: after a Stop the host admission hold makes later consults end cancelled until the owner presses Resume'
+    : '';
+  if (!job) return `oracle: no job; ${presence}${tablePart}${advisorPart}${stopHoldNote}; live residency unavailable on this build`;
+  const autoPart = job.auto ? `; auto run ${job.auto.run_id}, paused by ${job.paused_by ?? 'none'}, owner touched ${job.owner_touched}` : '';
   const running = Object.values(job.consults).find(consult => consult.status === 'running');
   const elapsed = running?.started_at
     ? `; consult started ${running.started_at}, elapsed ${Math.max(0, Date.now() - Date.parse(running.started_at))}ms`
@@ -75,7 +81,7 @@ function statusText(snapshot) {
     `nudges ${job.counters.nudges}; open STOPs ${open_stops.join(', ') || 'none'}; ` +
     `Seed ${job.seed?.hash ?? 'none'} (${job.seed?.source ?? 'unbound'}); ` +
     `oracle task ${job.oracle_task_id ?? 'none'}; residency ${job.residency}; ` +
-    `${presence}${elapsed}${tablePart}${advisorPart}` +
+    `${presence}${elapsed}${tablePart}${advisorPart}${autoPart}${stopHoldNote}` +
     (job.residency === 'unavailable' ? '; live residency unavailable on this build' : '');
 }
 
@@ -135,11 +141,15 @@ export function registerCommands(pi, runtime) {
             type: 'job_opened', job_id: `J${ledger.state.next_job_number}`,
             job_epoch: 1, at: new Date().toISOString(),
           });
+          const sessionId = ctx?.sessionManager?.getSessionId?.();
+          if (sessionId) noteJobOpen(sessionId);
         } else if (job.status === 'paused') {
-          ledger.append({ type: 'job_resumed', job_id: job.job_id });
+          ledger.append({ type: 'job_resumed', job_id: job.job_id, by: 'owner' });
+        } else if (job.status === 'active' && job.auto) {
+          ledger.append({ type: 'job_resumed', job_id: job.job_id, by: 'owner' });
         }
       } else if (action === 'off' && job?.status === 'active') {
-        ledger.append({ type: 'job_paused', job_id: job.job_id });
+        ledger.append({ type: 'job_paused', job_id: job.job_id, by: 'owner' });
       } else if (action === 'end' && job && job.status !== 'closed') {
         try {
           await (runtime.consult ?? transport)?.cancel(ctx);
@@ -148,7 +158,7 @@ export function registerCommands(pi, runtime) {
           const code = error.code ?? 'oracle_retirement_unconfirmed';
           return show('unavailable', `oracle end: ${code}; retirement unconfirmed`, { code });
         }
-        ledger.append({ type: 'job_ended', job_id: job.job_id, retire_pending: !transport });
+        ledger.append({ type: 'job_ended', job_id: job.job_id, retire_pending: !transport, by: 'owner' });
       }
       job = ledger.state.job;
       return show(job?.status ?? 'no_job', statusText(statusSnapshot(ledger, ctx)));

@@ -157,8 +157,9 @@ describe('nature freshness horizons', () => {
   });
 
   it('a work consult ignores records older than session start', async () => {
-    const { task, start, runtime, sessionId } = setup();
+    const { task, start, runtime, sessionId, fake } = setup();
     await task({ category: 'visual-engineering', prompt: 'early' });
+    runtime.nature.noteSessionStart?.({ reason: 'started' }, fake.ctx);
     await start();
     assert.equal(runtime.nature.forConsult(sessionId, 'work'), 'neutral');
   });

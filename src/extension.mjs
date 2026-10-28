@@ -4,9 +4,13 @@ import { createLedger } from './ledger.mjs';
 import { CHILD_SESSION_MESSAGE, registerCommands } from './commands.mjs';
 import { registerSeedTool } from './seed.mjs';
 import { createTransport } from './transport.mjs';
+import { registerDriver, getDriver } from './driver.mjs';
+import { registerNature, getNature } from './nature.mjs';
 import { registerConsultTool } from './consult.mjs';
-import { registerNudger } from './nudger.mjs';
+import { registerAutoAtlas } from './auto-atlas.mjs';
 import { registerStopGate } from './stop-gate.mjs';
+import { registerNudger } from './nudger.mjs';
+import { registerStatusHub } from './status-hub.mjs';
 
 export const REGISTRATION_KEY = Symbol.for('omo.oracle-advisor.v1');
 
@@ -88,7 +92,10 @@ export default function extension(pi) {
   runtime.transport = createTransport(pi, { ledger, getSessionStatus });
   registerCommands(pi, runtime);
   registerSeedTool(pi, runtime);
-  registerConsultTool(pi, runtime);
+  registerDriver(pi, runtime);
+  const nature = registerNature(pi, runtime);
+  registerConsultTool(pi, runtime, { getDriver, getNature });
+  const autoAtlas = registerAutoAtlas(pi, runtime);
   registerStopGate(pi, runtime);
   registerNudger(pi, runtime);
   const rebuild = async (ctx, branchSwitch = false) => {
@@ -134,6 +141,8 @@ export default function extension(pi) {
         return;
       }
     }
+    nature?.noteSessionStart?.(event, ctx);
+    autoAtlas?.noteSessionStart?.(event);
     await rebuild(ctx);
   });
   pi.on('session_tree', async (event, ctx) => {
@@ -146,5 +155,6 @@ export default function extension(pi) {
     try { await runtime.transport.shutdown(ctx); }
     finally { release(); }
   });
+  registerStatusHub(pi, runtime);
   return runtime;
 }

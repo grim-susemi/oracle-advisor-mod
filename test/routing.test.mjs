@@ -236,6 +236,22 @@ test('matrix: family x kind routes to expected model', async t => {
     assert.equal(rec.advisor_source, 'by_agent');
     assert.equal(rec.auto_run_id, null);
   }
+
+  // 5. Open auto job carries auto_run_id into consult receipts
+  {
+    const s = setup(t, {
+      modelId: 'claude-opus-5-5',
+    });
+    // Replace manual J1 with an auto job
+    s.ledger.append({
+      type: 'job_opened', job_id: 'J2', job_epoch: 1,
+      auto: { run_id: 'run-auto-xyz', trigger: 'atlas_ulw_execute' },
+    });
+    const res = await s.invoke('r_auto', 'work');
+    assert.equal(res.details.status, 'answered');
+    const rec = s.receipts()[0];
+    assert.equal(rec.auto_run_id, 'run-auto-xyz');
+  }
 });
 
 test('nature precedence: design -> claude (no model), lowlevel -> gpt (model pinned)', async t => {

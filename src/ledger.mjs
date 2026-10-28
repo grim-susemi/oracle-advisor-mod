@@ -12,6 +12,7 @@ function openJob(data) {
   return {
     job_id: data.job_id, job_epoch: data.job_epoch ?? 1,
     status: 'active', gate_state: 'ACTIVE', opened_at: data.at ?? null,
+    auto: data.auto ?? null, paused_by: null, owner_touched: false,
     oracle_task_id: null, oracle_task_ids: [], residency: 'unavailable',
     consults: {}, verdicts: [], stops: {}, dispositions: [], overrides: [],
     seed: null, counters: { consults: 0, work: 0, completion: 0, nudges: 0, failure_nudges: 0 },
@@ -157,8 +158,16 @@ function reduceState(state, data, owned = false) {
   const job = next.job;
   if (!job || (data.job_id && data.job_id !== job.job_id)) return next;
   switch (data.type) {
-    case 'job_paused': job.status = 'paused'; break;
-    case 'job_resumed': job.status = 'active'; break;
+    case 'job_paused':
+      job.status = 'paused';
+      job.paused_by = data.by ?? null;
+      if (data.by === 'owner') job.owner_touched = true;
+      break;
+    case 'job_resumed':
+      job.status = 'active';
+      job.paused_by = null;
+      if (data.by === 'owner') job.owner_touched = true;
+      break;
     case 'job_ended':
       job.status = 'closed';
       job.seed = null;

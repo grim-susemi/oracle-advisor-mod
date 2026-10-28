@@ -138,13 +138,13 @@ export function registerNature(pi, runtime) {
     return undefined;
   });
 
-  pi.on('session_start', (_event, ctx) => {
+  const noteSessionStart = (_event, ctx) => {
     if (!isLead(pi, ctx)) return undefined;
     stateFor(sessionIdOf(ctx)).sessionStart = stateFor(sessionIdOf(ctx)).counter;
     return undefined;
-  });
+  };
 
-  const nature = { forConsult: query, noteJobOpen, getState: stateFor };
+  const nature = { forConsult: query, noteJobOpen, getState: stateFor, noteSessionStart };
   if (runtime && typeof runtime === 'object') runtime.nature = nature;
   return nature;
 }
