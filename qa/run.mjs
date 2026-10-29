@@ -80,7 +80,14 @@ if (values.case === 'child-entry') {
   await (await import('./cases/child-entry.mjs')).runChildEntry(values);
   process.exit(process.exitCode ?? 0);
 }
-if (values.case === 'probe-r3-seams') {
+if (values.case === 'r3-seams-real') {
+  await (await import('./cases/r3-seams-real.mjs')).runR3SeamsRealCase(values);
+  process.exit(process.exitCode ?? 0);
+}
+if (values.case === 'r3-seams') {
+  await (await import('./cases/r3-seams.mjs')).runR3SeamsCase(values);
+  process.exit(process.exitCode ?? 0);
+} else if (values.case === 'probe-r3-seams') {
   await (await import('./cases/probe-r3-seams.mjs')).runProbeR3SeamsCase(values);
   process.exit(process.exitCode ?? 0);
 }
