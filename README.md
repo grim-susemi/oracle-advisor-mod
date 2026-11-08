@@ -83,6 +83,20 @@ This adds traceability, not evidence of better allocation or lower cost.
 Residency remains disabled; any future per-consult model switching would also
 need to respect the model of an already resident task.
 
+## Bounded QA
+
+The legacy `npm run check` still admits the complete test-file registry only.
+For bounded local jobs, set `ORACLE_QA_CHECK_PHASE` to an exact `1/16` through
+`16/16` value and write each observation with
+`ORACLE_QA_VERDICT_CHECK_EVIDENCE=<parts>/phase-N.json`. Each phase admits only
+its fixed registry partition, without name filters, skipped files or extra flags.
+The final phase additionally requires `ORACLE_QA_CHECK_PARTS=<parts>` and refuses
+missing, failed or different-source observations. It checks exact all-file
+coverage, applies the existing unit verdict clauses to all recorded executions,
+then runs the build and the unchanged command verdict clauses.
+
+The acceptance launch fixture prepares its required build before installation.
+
 ## Routing table
 
 Advisor routing is configured via `<agentDir>/oracle-advisor/routing.json`.
