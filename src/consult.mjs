@@ -14,8 +14,9 @@ const result = (details, text) => ({
   content: [{ type: 'text', text }], details, structuredContent: details,
 });
 const validArguments = args => args && typeof args === 'object' && !Array.isArray(args) &&
-  Object.keys(args).every(key => ['kind', 'question', 'claims'].includes(key)) &&
+  Object.keys(args).every(key => ['kind', 'question', 'claims', 'purpose'].includes(key)) &&
   ['work', 'completion'].includes(args.kind) && typeof args.question === 'string' &&
+  (!Object.hasOwn(args, 'purpose') || ['scope', 'correctness', 'mixed'].includes(args.purpose)) &&
   [...args.question].length <= 4000 && (args.claims === undefined ||
     Array.isArray(args.claims) && args.claims.length <= 5 && args.claims.every(item => typeof item === 'string'));
 const artifactId = id => /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(id) &&
@@ -119,11 +120,13 @@ export function registerConsultTool(pi, runtime, {
       calls_remaining: remaining(job),
       session_id: null, advisor_profile: null, advisor_source: null, advisor_reason: null,
       driver_agent: null, main_family: null, task_nature: null, auto_run_id: null,
+      consult_purpose: null,
     };
   }
   function deliver(record, analysis = '') {
     const details = {
       status: record.status, calls_remaining: record.calls_remaining,
+      consult_purpose: record.consult_purpose ?? null,
       path: record.path, analysis_path: record.analysis_path, analysis_chars: record.analysis_chars,
       ...(record.verdict ? { verdict: record.verdict, reasons: record.reasons } : {}),
       ...(record.stop_id ? { stop_id: record.stop_id } : {}),
@@ -146,6 +149,7 @@ export function registerConsultTool(pi, runtime, {
     const advisor = admittedRecord?.advisor ?? null;
     const record = {
       ...base(request_id, kind, job), status, advisor,
+      consult_purpose: admittedRecord?.consult_purpose ?? null,
       advisor_profile: advisor?.profile ?? null,
       advisor_source: advisor?.source ?? null,
       advisor_reason: advisor?.reason ?? null,
@@ -156,6 +160,7 @@ export function registerConsultTool(pi, runtime, {
     };
     const response = result({
       status, calls_remaining: record.calls_remaining, path: null, analysis_path: null, analysis_chars: 0,
+      consult_purpose: record.consult_purpose,
     }, status === 'oracle_not_readonly' ? 'oracle_not_readonly; no oracle started' : `oracle ${status}`);
     // Session identity guards are fail-inert, including receipts.
     if (!['child_session_refused', 'session_not_ready'].includes(status)) {
@@ -175,6 +180,7 @@ export function registerConsultTool(pi, runtime, {
     const advisor = admittedRecord?.advisor ?? null;
     const record = {
       ...base(request_id, args.kind, job), slot,
+      consult_purpose: admittedRecord?.consult_purpose ?? null,
       advisor,
       session_id: operation.session_id ?? null,
       advisor_profile: advisor?.profile ?? null,
@@ -378,6 +384,7 @@ export function registerConsultTool(pi, runtime, {
         kind: { type: 'string', enum: ['work', 'completion'] },
         question: { type: 'string', maxLength: 4000 },
         claims: { type: 'array', items: { type: 'string' }, maxItems: 5 },
+        purpose: { type: 'string', enum: ['scope', 'correctness', 'mixed'] },
       }, required: ['kind', 'question'], additionalProperties: false,
     },
     execute(request_id, args, signal, _update, ctx) {
@@ -417,6 +424,7 @@ export function registerConsultTool(pi, runtime, {
       // Refused identities are durable too, but never reserve a slot.
       if (!previous) append('consult_admitted', {
         ...base(request_id, args?.kind, job), status: 'admitted', slot: refusal ? null : slot, advisor,
+        consult_purpose: valid ? args.purpose ?? null : null,
       }, job);
       if (refusal) return refuse(refusal, request_id, args?.kind, job);
       const controller = new AbortController();

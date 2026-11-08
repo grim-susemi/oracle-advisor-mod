@@ -66,6 +66,23 @@ interactive `/ulw-execute` or `/skill:ulw-execute` commands (manual `/oracle on|
 remains fully functional; `/skill:ulw-plan` ends a run with reason plan_request).
 Normal event receipts are in `<agentDir>/logs/oracle-advisor.jsonl`.
 
+The optional `purpose` field records why the caller is asking:
+
+```js
+oracle_consult({ kind: "work", question: "Review this change.", purpose: "scope" })
+```
+
+Allowed values are `scope`, `correctness`, and `mixed`. Omit the property for
+undeclared purpose; responses and receipts expose `consult_purpose: null`.
+Other supplied values are rejected without spending a consult slot. The first
+admission fixes the value, including across replay of the same request ID.
+Accounting receipts let an auditor compare this declaration with `task_nature`
+and the selected advisor. Purpose does not change routing or enter the advisor
+prompt. Task nature still describes prior task signals, not the current question.
+This adds traceability, not evidence of better allocation or lower cost.
+Residency remains disabled; any future per-consult model switching would also
+need to respect the model of an already resident task.
+
 ## Routing table
 
 Advisor routing is configured via `<agentDir>/oracle-advisor/routing.json`.

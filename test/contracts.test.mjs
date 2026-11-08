@@ -22,6 +22,7 @@ test('consult receipt fields are the complete accounting contract', () => {
     'model', 'usage_status', 'input_tokens', 'output_tokens', 'reasoning_tokens',
     'verdict', 'verdict_changed_direction', 'same_failure_recurred_after', 'calls_remaining', 'failure_digest', 'redirect_id',
     'session_id', 'advisor_profile', 'advisor_source', 'advisor_reason', 'driver_agent', 'main_family', 'task_nature', 'auto_run_id',
+    'consult_purpose',
   ]);
   assert.deepEqual(contracts.CONSULT_PATHS, ['revival', 'spawn', 'fresh_fallback']);
   assert.deepEqual(contracts.CONSULT_STATUSES, [
