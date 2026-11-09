@@ -171,6 +171,12 @@ export function createTransport(pi, { ledger, decision = TRANSPORT_DECISION, now
     const task = result.details?.snapshot;
     if (task) snapshots.set(id, task);
     if (result.details?.kind === 'not_found') return { task_id: id, status: 'completed', residency_state: 'persisted_only', absent: true };
+    // The host answers a status re-read of an unchanged record with no_progress
+    // and no snapshot; the last snapshot seen for this owned task still holds.
+    if (!task && result.details?.kind === 'no_progress') {
+      const seen = snapshots.get(id);
+      if (seen && seen.status === result.details.status) return seen;
+    }
     if (!task) throw Object.assign(new Error(`oracle_status_unconfirmed: ${id}: ${textOf(result)}`),
       { code: 'oracle_status_unconfirmed' });
     return task;

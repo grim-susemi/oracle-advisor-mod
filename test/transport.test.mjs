@@ -385,6 +385,35 @@ test('retirement handles running, completed resident, and already gone; refuses 
   assert.ok([...f.records.values()].every(task => task.residency_state === 'persisted_only'));
 });
 
+// The installed omo-task host answers a status re-read of an unchanged record
+// with { kind: 'no_progress', status } and no snapshot (omo-task.js status dedupe).
+function noProgressHost(seen = new Map()) {
+  return (name, args, _options, state) => {
+    if (name !== 'task_output') return;
+    const task = state.records.get(args.task_id);
+    if (!task) return;
+    const key = JSON.stringify([task.status, task.residency_state]);
+    if (seen.get(args.task_id) !== key) { seen.set(args.task_id, key); return; }
+    return outcome({ kind: 'no_progress', task_id: task.task_id, status: task.status },
+      `Task ${task.task_id} is ${task.status}. It will not send a completion notification; use mode:"tail" only for explicit transcript diagnosis.`);
+  };
+}
+
+test('job end retires an answered oracle task the host reports as no_progress', async t => {
+  const f = fixture(t, { execute: noProgressHost() });
+  assert.equal((await f.run()).status, 'answered');
+  const retired = await f.transport.retire(f.ctx, 'end');
+  assert.deepEqual(retired.map(row => [row.oracle_task_id, row.confirmed]), [['t1', true]]);
+});
+
+test('no_progress without any seen snapshot stays unconfirmed', async t => {
+  const f = fixture(t, { execute(name, args) {
+    if (name === 'task_output') return outcome({ kind: 'no_progress', task_id: args.task_id, status: 'completed' });
+  } });
+  f.ledger.append({ type: 'oracle_assigned', oracle_task_id: 'unseen' });
+  await assert.rejects(f.transport.retire(f.ctx, 'end'), /oracle_status_unconfirmed/);
+});
+
 test('stuck revival answer is returned once and retired; next consult spawns', async t => {
   const f = fixture(t, { live: true, execute(name, args, _options, state) {
     if (name !== 'task_send') return;
