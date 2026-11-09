@@ -13,10 +13,20 @@ const remaining = job => CONSULT_CAP - (job?.counters.consults ?? 0);
 const result = (details, text) => ({
   content: [{ type: 'text', text }], details, structuredContent: details,
 });
+const ADVISORS = ['claude', 'gpt'];
+// A main pick is honoured only by a profile whose pinned model is that family;
+// an unpinned profile would inherit the oracle role model, so it is not a pick.
+const pickedProfile = (table, family) => {
+  const profiles = table?.profiles ?? {};
+  const fits = name => typeof profiles[name]?.model === 'string' &&
+    familyOf(profiles[name].model.split('/').at(-1).split(':')[0]) === family;
+  return fits(family) ? family : Object.keys(profiles).find(fits) ?? null;
+};
 const validArguments = args => args && typeof args === 'object' && !Array.isArray(args) &&
-  Object.keys(args).every(key => ['kind', 'question', 'claims', 'purpose'].includes(key)) &&
+  Object.keys(args).every(key => ['kind', 'question', 'claims', 'purpose', 'advisor'].includes(key)) &&
   ['work', 'completion'].includes(args.kind) && typeof args.question === 'string' &&
   (!Object.hasOwn(args, 'purpose') || ['scope', 'correctness', 'mixed'].includes(args.purpose)) &&
+  (!Object.hasOwn(args, 'advisor') || ADVISORS.includes(args.advisor)) &&
   [...args.question].length <= 4000 && (args.claims === undefined ||
     Array.isArray(args.claims) && args.claims.length <= 5 && args.claims.every(item => typeof item === 'string'));
 const artifactId = id => /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(id) &&
@@ -378,13 +388,15 @@ export function registerConsultTool(pi, runtime, {
   });
   runtime.registerTool({
     name: 'oracle_consult', label: 'Consult oracle',
-    description: 'Request read-only advice for work or completion in an active oracle job.',
+    description: 'Request read-only advice for work or completion in an active oracle job. ' +
+      'Optionally pick the advisor (claude or gpt) that suits the question; omit it to use the routing table.',
     parameters: {
       type: 'object', properties: {
         kind: { type: 'string', enum: ['work', 'completion'] },
         question: { type: 'string', maxLength: 4000 },
         claims: { type: 'array', items: { type: 'string' }, maxItems: 5 },
         purpose: { type: 'string', enum: ['scope', 'correctness', 'mixed'] },
+        advisor: { type: 'string', enum: ADVISORS },
       }, required: ['kind', 'question'], additionalProperties: false,
     },
     execute(request_id, args, signal, _update, ctx) {
@@ -397,7 +409,7 @@ export function registerConsultTool(pi, runtime, {
       if (previous && !consultPending(previous)) return previous.response ?? deliver(previous);
       const valid = validArguments(args);
       const slot = args?.kind === 'completion' && job?.counters.completion === 0 ? 'completion' : 'work';
-      const refusal = !valid ? 'invalid_arguments' : job?.status !== 'active' ? 'no_active_job' :
+      let refusal = !valid ? 'invalid_arguments' : job?.status !== 'active' ? 'no_active_job' :
         pending || runtime.transport.running ? 'busy' :
           remaining(job) <= 0 || slot === 'work' && job.counters.work >= WORK_CONSULTS ? 'cap_exhausted' : null;
       let advisor = null;
@@ -408,8 +420,12 @@ export function registerConsultTool(pi, runtime, {
         const driverInfo = getDriver ? getDriver(ctx) : null;
         const driver = driverInfo?.agentId ?? (typeof driverInfo === 'string' ? driverInfo : null);
         const nature = getNature ? getNature(sessionId, args.kind) : null;
-        const resolved = resolveAdvisor({ kind: args.kind, mainFamily, driver, nature, table });
-        advisor = {
+        const pick = Object.hasOwn(args, 'advisor') ? pickedProfile(table, args.advisor) : undefined;
+        const resolved = pick ? {
+          profile: pick, model: table.profiles[pick].model, source: 'main_pick', reason: `main:${args.advisor}`,
+        } : resolveAdvisor({ kind: args.kind, mainFamily, driver, nature, table });
+        if (pick === null) refusal = 'advisor_unavailable';
+        else advisor = {
           profile: resolved.profile ?? null,
           model: resolved.model ?? null,
           family: resolved.profile ? (table?.profiles?.[resolved.profile]?.family ?? null) : null,

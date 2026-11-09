@@ -983,3 +983,64 @@ test('absent or empty ctx.model.id with valid table gives legacy dispatch withou
   assert.equal(rec.advisor_source, 'legacy');
   assert.equal(rec.advisor_reason, 'family_unknown');
 });
+
+const shippedRouting = JSON.parse(readFileSync(new URL('../config/routing.default.json', import.meta.url), 'utf8'));
+
+for (const [pick, nature, model] of [
+  ['claude', 'lowlevel', 'anthropic-subscription/claude-opus-5-5:max'],
+  ['gpt', 'design', 'chatgpt-subscription/gpt-6-astra:high'],
+]) {
+  test(`advisor pick ${pick} overrides ${nature} routing and records main_pick with the real model`, async t => {
+    const s = setup(t, { routing: shippedRouting, modelId: 'gpt-6-astra', nature });
+    const response = await s.invoke('pick', 'work', { advisor: pick });
+    assert.equal(response.details.status, 'answered');
+    assert.equal(s.taskCalls.length, 1);
+    assert.equal(s.taskCalls[0].model, model);
+    const rec = s.receipts().at(-1);
+    assert.equal(rec.advisor_profile, pick);
+    assert.equal(rec.advisor_source, 'main_pick');
+    assert.equal(rec.advisor_reason, `main:${pick}`);
+    assert.equal(rec.model, model);
+    assert.equal(rec.task_nature, nature);
+    assert.equal(s.ledger.request('pick').advisor.source, 'main_pick');
+  });
+}
+
+test('advisor omitted keeps the routing table decision unchanged', async t => {
+  for (const nature of ['design', 'lowlevel']) {
+    const s = setup(t, { routing: shippedRouting, modelId: 'gpt-6-astra', nature });
+    await s.invoke('none', 'work');
+    const rec = s.receipts().at(-1);
+    assert.equal(rec.advisor_source, 'by_nature');
+    assert.equal(rec.advisor_profile, nature === 'design' ? 'claude' : 'gpt');
+    assert.equal(s.taskCalls[0].model, shippedRouting.profiles[rec.advisor_profile].model);
+  }
+});
+
+for (const [label, routing] of [['unpinned claude profile', defaultRouting], ['absent table', null]]) {
+  test(`advisor pick that cannot be honoured (${label}) is refused without dispatch, slot or substitution`, async t => {
+    const s = setup(t, { routing, modelId: 'gpt-6-astra', nature: 'lowlevel' });
+    const response = await s.invoke('unhonoured', 'work', { advisor: 'claude' });
+    assert.equal(response.details.status, 'advisor_unavailable');
+    assert.equal(response.details.calls_remaining, 4);
+    assert.equal(s.taskCalls.length, 0);
+    assert.equal(s.ledger.request('unhonoured').advisor, null);
+    assert.equal(s.ledger.request('unhonoured').slot, null);
+  });
+}
+
+test('advisor pick rejects values outside the closed enum without dispatch', async t => {
+  for (const advisor of ['opus', 'Claude', null, 1]) {
+    const s = setup(t, { routing: shippedRouting, modelId: 'gpt-6-astra' });
+    const response = await s.invoke('bad', 'work', { advisor });
+    assert.equal(response.details.status, 'invalid_arguments');
+    assert.equal(s.taskCalls.length, 0);
+  }
+});
+
+test('advisor pick schema is an optional closed enum', t => {
+  const s = setup(t, { routing: shippedRouting });
+  const schema = s.fake.tools.get('oracle_consult').parameters;
+  assert.deepEqual(schema.properties.advisor, { type: 'string', enum: ['claude', 'gpt'] });
+  assert.equal(schema.required.includes('advisor'), false);
+});

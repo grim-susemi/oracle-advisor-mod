@@ -95,6 +95,20 @@ This adds traceability, not evidence of better allocation or lower cost.
 Residency remains disabled; any future per-consult model switching would also
 need to respect the model of an already resident task.
 
+The optional `advisor` field lets the main agent pick the advisor family for
+one question:
+
+```js
+oracle_consult({ kind: "work", question: "Is this lock order safe?", advisor: "gpt" })
+```
+
+Allowed values are `claude` and `gpt`. A pick takes precedence over the routing
+table and is recorded as `advisor_source: "main_pick"` with the actually used
+`model` in the receipt. It is honoured only by a routing profile whose pinned
+model belongs to that family; otherwise the consult is refused as
+`advisor_unavailable` without spending a slot, and no other advisor is used.
+Omit the field to keep the routing table decision unchanged.
+
 ## Bounded QA
 
 The legacy `npm run check` still admits the complete test-file registry only.
