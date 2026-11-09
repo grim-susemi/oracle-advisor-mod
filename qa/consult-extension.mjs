@@ -1,7 +1,12 @@
 import { appendFileSync } from 'node:fs';
-import extension from '../src/extension.mjs';
+import sourceExtension from '../src/extension.mjs';
+import { pathToFileURL } from 'node:url';
 import { guardAuth, reserveRealOracleRuns } from './harness.mjs';
 import { observeScenario } from './scenario-observer.mjs';
+
+const extension = process.env.ORACLE_QA_INSTALLED_ENTRY
+  ? (await import(pathToFileURL(process.env.ORACLE_QA_INSTALLED_ENTRY).href)).default
+  : sourceExtension;
 
 export default function consultQA(pi) {
   const nativeCalls = [];

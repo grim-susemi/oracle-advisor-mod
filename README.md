@@ -38,6 +38,18 @@ This policy affects other uses of those oracle definitions too.
 
 ## Use
 
+| Main agent | Automatic activation |
+|---|---|
+| Atlas | Open a job at session start; no execution command required |
+| Sisyphus | Manual `/oracle on` only |
+| Hephaestus | Manual `/oracle on` only |
+| Other or unknown identity | Manual `/oracle on` only |
+
+Only a valid latest `primary-agent/v1` Atlas identity in a lead session can
+auto-create a job. If identity arrives later, the first non-preview turn checks
+it again. Existing manual, paused, or ended jobs retain owner precedence.
+Opening a job does not call a model; advice still requires `oracle_consult`.
+
 - `/oracle on`: open or resume a job.
 - `/oracle off`: pause nudges and gates, retaining the job.
 - `/oracle status`: show the job, counters, open STOPs, Seed and residency.
@@ -61,8 +73,8 @@ order; both handlers' settle entries, prompt blocks and brief result edits survi
 
 Set `OMO_ORACLE_ADVISOR=0` before starting the host to disable every advisor
 hook and tool. One `disabled-by-env` receipt is written.
-Set `OMO_ORACLE_AUTO_ATLAS=0` to disable automatic advisor jobs when Atlas runs
-interactive `/ulw-execute` or `/skill:ulw-execute` commands (manual `/oracle on|off|end`
+Set `OMO_ORACLE_AUTO_ATLAS=0` to disable automatic advisor jobs at Atlas session
+start and on interactive `/ulw-execute` or `/skill:ulw-execute` commands (manual `/oracle on|off|end`
 remains fully functional; `/skill:ulw-plan` ends a run with reason plan_request).
 Normal event receipts are in `<agentDir>/logs/oracle-advisor.jsonl`.
 
@@ -115,6 +127,9 @@ the exact `omo.jsonc` bytes. The foreign-shim case requires the entire temporary
 tree to stay unchanged.
 
 ## 한국어 요약
+
+Atlas는 세션 시작 시 자동으로 잡을 엽니다. Sisyphus·Hephaestus·그 외는
+`/oracle on`으로만 켭니다. 자동 잡 생성 자체는 모델을 호출하지 않습니다.
 
 `/oracle on`으로 작업을 켜고 `/oracle off`로 일시 정지합니다.
 `/oracle status`는 상태, `/oracle cancel`은 진행 중 자문 취소,

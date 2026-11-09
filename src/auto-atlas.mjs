@@ -4,8 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { openStops } from './ledger.mjs';
 import { noteJobOpen } from './nature.mjs';
 
-// Atlas `/ulw-execute` runs open one auto job in the owner's lead session.
-// The trigger is the same slash-command rule as primary-agents gate-mirror.
+// Atlas sessions open automatically; execution commands may start a new run.
 export const AUTO_TRIGGER = Object.freeze({
   commands: Object.freeze(['/skill:ulw-execute', '/ulw-execute']),
 });
@@ -56,7 +55,7 @@ function disabledReceipt() {
 export function registerAutoAtlas(pi, runtime) {
   if (process.env.OMO_ORACLE_AUTO_ATLAS === '0') {
     disabledReceipt();
-    return { noteSessionStart() {} };
+    return { noteSessionStart() {}, noteSessionReady() {} };
   }
   const { ledger, getSessionStatus } = runtime;
   let run = null; // latest owner /ulw-execute run: { run_id }
@@ -64,6 +63,9 @@ export function registerAutoAtlas(pi, runtime) {
   let restarted = false; // resume or fork: the next turn settles the auto job
   const usedRuns = new Set(); // run IDs that were already opened; never reopen for the same run id
   let planEnd = false; // A4: a plan_request end waiting for an open STOP or consult to clear
+  let startup = false;
+  let awaitingFirstTurn = false;
+  let trigger = 'atlas_ulw_execute';
 
   const openJob = () => {
     const job = ledger.state.job;
@@ -83,8 +85,11 @@ export function registerAutoAtlas(pi, runtime) {
   pi.on('input', (event, ctx) => {
     if (!OWNER_SOURCES.has(event?.source)) return;
     if (matchesAny(event?.text, AUTO_TRIGGER.commands)) {
+      // The opening execution command belongs to the job just opened at startup.
+      if (awaitingFirstTurn && openJob()?.auto?.trigger === 'atlas_session_start') return;
       run = { run_id: randomUUID() };
       pending = true;
+      trigger = 'atlas_ulw_execute';
       return;
     }
     // A4: the two end events are plan_request (/ulw-plan) and session_restarted (A1); both end the job and neither pauses it.
@@ -99,8 +104,19 @@ export function registerAutoAtlas(pi, runtime) {
     }
   });
 
-  pi.on('before_agent_start', (event, ctx) => {
+  const beforeStart = (event, ctx) => {
     if (event?.preview === true) return;
+    if (getSessionStatus() !== 'lead') return;
+    if (startup) {
+      startup = false;
+      // Never auto-create for any identity except the latest valid Atlas entry.
+      // Persisted jobs (including owner-ended jobs) retain owner precedence.
+      if (!ledger.state.job && !run && readSafestAtlasDriver(ctx.sessionManager.getBranch())) {
+        run = { run_id: randomUUID() };
+        pending = true;
+        trigger = 'atlas_session_start';
+      }
+    }
     let job = openJob();
     if (planEnd) { // A4: deferred end waits until no STOP is open and no consult runs
       const held = openJob();
@@ -165,17 +181,28 @@ export function registerAutoAtlas(pi, runtime) {
     const job_id = `J${ledger.state.next_job_number}`;
     ledger.append({
       type: 'job_opened', job_id, job_epoch: 1, at: new Date().toISOString(),
-      auto: { run_id: run.run_id, trigger: 'atlas_ulw_execute' },
+      auto: { run_id: run.run_id, trigger },
     });
     const sessionId = ctx?.sessionManager?.getSessionId?.();
     if (sessionId) noteJobOpen(sessionId);
-    notify(ctx, `고문 자동 작업 ${job_id} 시작 (Atlas /ulw-execute)`);
+    notify(ctx, `고문 자동 작업 ${job_id} 시작 (${trigger === 'atlas_session_start' ? 'Atlas 세션 시작' : 'Atlas /ulw-execute'})`);
+  };
+  pi.on('before_agent_start', (event, ctx) => {
+    beforeStart(event, ctx);
+    if (event?.preview !== true) awaitingFirstTurn = false;
   });
   // Called from the extension's existing session_start handler: an extra
   // handler would shift microtask ordering in the consult reload races.
   return {
     noteSessionStart(event) {
       if (RESTART_REASONS.has(event?.reason)) restarted = true;
+    },
+    noteSessionReady(ctx) {
+      startup = !ledger.state.job;
+      if (startup && readSafestAtlasDriver(ctx.sessionManager.getBranch())) {
+        beforeStart({}, ctx);
+        awaitingFirstTurn = true;
+      }
     },
   };
 }

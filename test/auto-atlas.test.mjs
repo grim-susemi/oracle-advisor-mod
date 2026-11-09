@@ -53,6 +53,26 @@ describe('auto-atlas trigger', () => {
     assert.deepEqual(AUTO_TRIGGER.commands, ['/skill:ulw-execute', '/ulw-execute']);
   });
 
+  it('opens at session ready only for Atlas without an execution command', async () => {
+    for (const agentId of ['atlas', 'sisyphus', 'hephaestus', 'other']) {
+      const { fake, ledger, autoAtlas } = setup({ entries: [driverEntry(agentId)] });
+      autoAtlas.noteSessionReady(fake.ctx);
+      assert.equal(ledger.state.job?.status ?? null, agentId === 'atlas' ? 'active' : null, agentId);
+      await fake.emit('before_agent_start', {});
+      assert.equal(fake.calls.appendEntry.filter(([, d]) => d.type === 'job_opened').length,
+        agentId === 'atlas' ? 1 : 0, agentId);
+    }
+  });
+
+  it('opens on the first Atlas turn when identity arrives after session ready', async () => {
+    const { fake, ledger, autoAtlas } = setup();
+    autoAtlas.noteSessionReady(fake.ctx);
+    fake.entries.push(driverEntry('atlas'));
+    await fake.emit('before_agent_start', {});
+    assert.equal(ledger.state.job.status, 'active');
+    assert.equal(ledger.state.job.auto.trigger, 'atlas_session_start');
+  });
+
   it('opens exactly one auto job on the next atlas turn after /ulw-execute', async () => {
     const { fake, ledger } = setup({ entries: [driverEntry('atlas')] });
     await fake.emit('input', userInput('/ulw-execute'));

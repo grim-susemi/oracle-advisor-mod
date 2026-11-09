@@ -174,7 +174,7 @@ function hostArguments(args, environment, cwd, host) {
   } else if (['nudger-extension.mjs', 'triggers-probe-extension.mjs'].some(caseFile)) {
     for (const provider of providerTails) tails.push([...provider, '--system-prompt', operand]);
   } else if (['probe-extension.mjs', 'cases/lifecycle-extension.mjs', 'cases/seed-extension.mjs',
-    'consult-extension.mjs', 'lifecycle-retirement-extension.mjs', 'oracle-policy-extension.mjs',
+    'consult-extension.mjs', 'auto-atlas-extension.mjs', 'lifecycle-retirement-extension.mjs', 'oracle-policy-extension.mjs',
     'stop-extension.mjs', 'transport-extension.mjs', 'capability-extension.mjs',
     'cases/probe-r3-seams-extension.mjs', 'cases/r3-seams-extension.mjs'].some(caseFile) || missingExtension) {
     for (const provider of providerTails) tails.push([...provider, '--tools', tools, '--system-prompt', operand]);

@@ -144,6 +144,7 @@ export default function extension(pi) {
     nature?.noteSessionStart?.(event, ctx);
     autoAtlas?.noteSessionStart?.(event);
     await rebuild(ctx);
+    autoAtlas?.noteSessionReady?.(ctx);
   });
   pi.on('session_tree', async (event, ctx) => {
     if (getSessionStatus() !== 'lead') return;
