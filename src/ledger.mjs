@@ -65,6 +65,7 @@ export function consultUsage(requests, job_id) {
 function requestView(record, usage) {
   if (!record) return undefined;
   const view = structuredClone(record);
+  view.consult_purpose ??= null;
   for (const fact of Object.values(view.native_attempts ?? {})) freezeFact(fact);
   if (view.native_attempts) {
     const fact = Object.values(view.native_attempts).at(-1);
@@ -80,6 +81,8 @@ function requestView(record, usage) {
   if (view.response) {
     view.response.details.calls_remaining = view.calls_remaining;
     view.response.structuredContent.calls_remaining = view.calls_remaining;
+    view.response.details.consult_purpose = view.consult_purpose;
+    view.response.structuredContent.consult_purpose = view.consult_purpose;
   }
   return view;
 }

@@ -42,6 +42,8 @@ childProcess.spawn = function (command, args, options) {
 };
 syncBuiltinESMExports();
 try {
+  const { buildProduct } = await import('../../scripts/build.mjs');
+  buildProduct();
   const { runAcceptanceCase } = await import('../../qa/cases/acceptance.mjs');
   const name = process.argv[2];
   await runAcceptanceCase({ case: name, attempt, main: 'real', oracle: 'real' });

@@ -222,6 +222,15 @@ function nativeArguments(args, record) {
   return false;
 }
 
+export function checkPhaseFiles(phase) {
+  if (typeof phase !== 'string' || !/^(?:[1-9]|1[0-6])\/16$/.test(phase)) {
+    refuse('check phase must be an exact closed 1..16/16 partition');
+  }
+  const index = Number(phase.split('/')[0]) - 1;
+  return readdirSync(join(ROOT, 'test')).filter(name => name.endsWith('.test.mjs')).sort()
+    .map(name => `test/${name}`).filter((_, position) => position % 16 === index);
+}
+
 export function assertNodeLaunch(executable, args, environment, { nodeProfile = 'script', cwd = process.cwd() } = {}) {
   if (Object.keys(environment).some(key => key.toUpperCase().startsWith('NODE_') && !allowedNodeEnvironmentKey(key))) {
     refuse('unapproved Node environment carrier');
@@ -245,6 +254,9 @@ export function assertNodeLaunch(executable, args, environment, { nodeProfile = 
     prefix = checkPrefix;
     const files = readdirSync(join(ROOT, 'test')).filter(name => name.endsWith('.test.mjs')).sort().map(name => `test/${name}`);
     admitted = matches(args, [...checkPrefix, ...files]);
+  } else if (nodeProfile === 'check-phase') {
+    prefix = checkPrefix;
+    admitted = matches(args, [...checkPrefix, ...checkPhaseFiles(environment.ORACLE_QA_CHECK_PHASE)]);
   } else if (nodeProfile === 'syntax') {
     prefix = ['--check'];
     admitted = matches(args, ['--check', value => pathOperand(value) && /\.m?js$/.test(value)]);

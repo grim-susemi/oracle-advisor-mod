@@ -174,6 +174,41 @@ test('live_residency disabled is pinned', () => {
   assert.equal(TRANSPORT_DECISION.live_residency, 'disabled');
 });
 
+test('R5 purpose audit preserves routing and prompts across purposes and legacy tables', async t => {
+  for (const nature of ['neutral', 'design', 'lowlevel', 'mixed']) {
+    for (const [tableState, routing] of [['valid', defaultRouting], ['absent', null], ['invalid', '{invalid']]) {
+      let baseline;
+      for (const purpose of [undefined, 'scope', 'correctness', 'mixed']) {
+        const s = setup(t, { nature, routing });
+        const extra = purpose === undefined ? {} : { purpose };
+        await s.invoke('audit-first', 'work', extra);
+        await s.invoke('audit-next', 'work', extra);
+        const receipts = s.receipts().filter(row => row.event === 'consult');
+        assert.equal(receipts.length, 2);
+        for (const row of receipts) {
+          assert.equal(row.status, 'answered');
+          assert.equal(row.consult_purpose, purpose ?? null);
+          assert.equal(row.task_nature, nature);
+          t.diagnostic('R5_PURPOSE_AUDIT ' + JSON.stringify({
+            table: tableState, purpose: row.consult_purpose, task_nature: row.task_nature,
+            advisor_profile: row.advisor_profile, advisor_source: row.advisor_source,
+            model: row.model, request_id: row.request_id,
+          }));
+        }
+        const observed = {
+          native: s.taskCalls,
+          counters: s.ledger.state.job.counters,
+          advisors: receipts.map(row => ({
+            profile: row.advisor_profile, source: row.advisor_source, model: row.model,
+          })),
+        };
+        if (purpose === undefined) baseline = observed;
+        else assert.deepEqual(observed, baseline);
+      }
+    }
+  }
+});
+
 test('matrix: family x kind routes to expected model', async t => {
   // 1. Claude model -> gpt advisor for work and completion -> model pinned
   {

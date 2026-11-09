@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createLedger, replayLedger } from '../src/ledger.mjs';
@@ -178,10 +178,13 @@ test('reservation precedes dispatch, concurrent calls are busy, duplicate pendin
 test('idempotent replay works after rebuild without another call or receipt', async t => {
   const s = setup(t, { outcome: { status: 'answered', model_called: true, path: 'spawn',
     answer: `Full analysis retained.\n${answer}` } });
-  const first = await s.invoke('replay');
+  const first = await s.invoke('replay', 'work', { purpose: 'scope' });
+  assert.equal(first.details.consult_purpose, 'scope');
   const count = s.receipts().length;
   s.ledger.rebuild(s.entries);
-  assert.deepEqual(await s.invoke('replay', 'completion', { question: 'Different replay input.' }), first);
+  assert.deepEqual(await s.invoke('replay', 'completion', {
+    question: 'Different replay input.', purpose: 'correctness',
+  }), first);
   assert.equal(s.calls.length, 1);
   assert.equal(s.receipts().length, count);
   assert.match(first.content[0].text, /Full analysis retained/);
@@ -357,14 +360,63 @@ test('lead refusals are durable while unidentified and child sessions remain ine
   }
 });
 
-test('schema boundary rejects excess question, claims and unknown fields without a dispatch', async t => {
+test('R5 purpose admission schema boundary rejects invalid values without a dispatch', async t => {
   const s = setup(t);
   for (const [index, extra] of [
     { question: 'x'.repeat(4001) }, { claims: Array(6).fill('claim') },
     { claims: [1] }, { kind: 'other' }, { injected: true },
+    ...[null, undefined, {}, [], 1, true, '', 'Scope', ' scope', 'scope ',
+      'PURPOSE_REJECTED_MARKER'].map(purpose => ({ purpose })),
   ].entries()) assert.equal((await s.invoke(`invalid-input-${index}`, 'work', extra)).details.status, 'invalid_arguments');
   assert.equal(s.calls.length, 0);
   assert.equal(s.ledger.state.job.counters.consults, 0);
+  assert.doesNotMatch(JSON.stringify(s.entries), /PURPOSE_REJECTED_MARKER/);
+});
+
+for (const kind of ['work', 'completion']) for (const purpose of [undefined, 'scope', 'correctness', 'mixed']) {
+  test(`R5 purpose admission records ${purpose ?? 'undeclared'} for ${kind}`, async t => {
+    const s = setup(t);
+    const extra = purpose === undefined ? {} : { purpose };
+    const pending = s.invoke('purpose', kind, extra);
+    assert.equal(s.ledger.request('purpose').consult_purpose, purpose ?? null);
+    assert.equal((await pending).details.status, 'answered');
+    assert.equal(s.ledger.request('purpose').consult_purpose, purpose ?? null);
+    assert.equal(s.calls.length, 1);
+  });
+}
+
+test('R5 purpose admission schema exposes only the closed optional enum', t => {
+  const s = setup(t);
+  const schema = s.tools.get('oracle_consult').parameters;
+  assert.deepEqual(schema.properties.purpose, {
+    type: 'string', enum: ['scope', 'correctness', 'mixed'],
+  });
+  assert.equal(schema.required.includes('purpose'), false);
+});
+
+test('R5 purpose admission freezes intent before async mutation and replay', { timeout: 5000 }, async t => {
+  const entered = Promise.withResolvers(), release = Promise.withResolvers();
+  const s = setup(t, { outcome: async () => {
+    entered.resolve();
+    await release.promise;
+    return { status: 'answered', answer, model_called: true, path: 'spawn' };
+  } });
+  const tool = s.tools.get('oracle_consult');
+  const args = { kind: 'work', question: 'Review this change.', purpose: 'scope' };
+  const first = tool.execute('frozen-purpose', args, undefined, undefined, s.ctx);
+  assert.equal(s.ledger.request('frozen-purpose').consult_purpose, 'scope');
+  args.purpose = 'correctness';
+  const duplicate = s.invoke('frozen-purpose', 'work', { purpose: null });
+  await entered.promise;
+  release.resolve();
+  assert.deepEqual(await duplicate, await first);
+  assert.equal(s.ledger.request('frozen-purpose').consult_purpose, 'scope');
+  const receiptCount = s.receipts().length;
+  s.ledger.rebuild(s.entries);
+  assert.deepEqual(await s.invoke('frozen-purpose', 'completion', { purpose: 'mixed' }), await first);
+  assert.equal(s.ledger.request('frozen-purpose').consult_purpose, 'scope');
+  assert.equal(s.calls.length, 1);
+  assert.equal(s.receipts().length, receiptCount);
 });
 
 test('invalid advice consumes its slot and remains full non-binding advice', async t => {
@@ -399,11 +451,13 @@ test('STOP is durably opened and exposed to the gate, later CONTINUE does not cl
   assert.equal(s.ledger.state.job.gate_state, 'HELD');
 });
 
-test('complete receipt shape has no analysis, question, prompt or claims', async t => {
+test('R5 purpose projection receipt has no analysis, question, prompt or claims', async t => {
   const s = setup(t);
-  const result = await s.invoke('receipt');
+  const result = await s.invoke('receipt', 'work', { purpose: 'mixed' });
   assert.deepEqual(result.details, result.structuredContent);
+  assert.equal(result.details.consult_purpose, 'mixed');
   const receipt = s.receipts()[0];
+  assert.equal(receipt.consult_purpose, 'mixed');
   for (const field of RECEIPT_FIELDS) assert.ok(Object.hasOwn(receipt, field), field);
   for (const field of ['analysis', 'question', 'prompt', 'claims', 'answer']) assert.equal(Object.hasOwn(receipt, field), false);
   assert.equal(receipt.usage_status, 'actual');
@@ -411,6 +465,46 @@ test('complete receipt shape has no analysis, question, prompt or claims', async
   assert.equal(receipt.output_tokens, 7);
   assert.equal(receipt.reasoning_tokens, 2);
   assert.equal(receipt.same_failure_recurred_after, null);
+});
+
+for (const status of ['cancelled', 'interrupted']) {
+  test(`R5 purpose projection retains purpose through ${status} and late answer`, { timeout: 5000 }, async t => {
+    const entered = Promise.withResolvers(), release = Promise.withResolvers();
+    const s = setup(t, { outcome: async () => {
+      entered.resolve();
+      await release.promise;
+      return { status: 'answered', answer, model_called: true, path: 'spawn' };
+    } });
+    const pending = s.invoke('projection', 'work', { purpose: 'correctness' });
+    await entered.promise;
+    s.runtime.consult.invalidate(status);
+    release.resolve();
+    const response = await pending;
+    assert.equal(response.details.status, status);
+    assert.equal(response.details.consult_purpose, 'correctness');
+    s.ledger.rebuild(s.entries);
+    assert.equal(s.ledger.request('projection').consult_purpose, 'correctness');
+    assert.ok(s.receipts().every(row => row.consult_purpose === 'correctness'));
+    assert.equal(s.ledger.state.job.verdicts.length, 0);
+    assert.equal(s.ledger.state.job.counters.consults, 1);
+  });
+}
+
+test('R5 purpose projection legacy terminal replay is synchronous and writes nothing', t => {
+  const s = setup(t);
+  const details = { status: 'answered', calls_remaining: 4 };
+  s.ledger.append({ type: 'consult_admitted', request_id: 'legacy', kind: 'work' });
+  s.ledger.append({ type: 'consult_finished', request_id: 'legacy', status: 'answered',
+    response: { content: [{ type: 'text', text: 'Retained result' }],
+      details, structuredContent: structuredClone(details) } });
+  const history = structuredClone(s.entries);
+  const response = s.invoke('legacy', 'work', { purpose: 'scope' });
+  assert.equal(response instanceof Promise, false);
+  assert.equal(response.details.consult_purpose, null);
+  assert.equal(response.structuredContent.consult_purpose, null);
+  assert.equal(s.calls.length, 0);
+  assert.equal(existsSync(join(s.agentDir, 'logs/oracle-advisor.jsonl')), false);
+  assert.deepEqual(s.entries, history);
 });
 
 test('recurrence and accepted redirect update the ledger and append effect receipts', async t => {

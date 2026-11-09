@@ -114,6 +114,41 @@ test('approved Node purposes still refuse every extra or abbreviated prefix befo
   });
 });
 
+test('QA1011 check phases admit only exact closed registry partitions before spawn', t => {
+  const cwd = directory(t);
+  const prefix = ['--test', '--test-isolation=none', '--test-reporter=./qa/verdict-test-reporter.mjs'];
+  const files = readdirSync(join(ROOT, 'test')).filter(name => name.endsWith('.test.mjs'))
+    .sort().map(name => `test/${name}`);
+  observeSpawn(calls => {
+    for (let n = 1; n <= 16; n++) {
+      const selected = files.filter((_, index) => index % 16 === n - 1);
+      const env = { SystemRoot: process.env.SystemRoot, ORACLE_QA_CHECK_PHASE: `${n}/16` };
+      for (const args of [
+        [...prefix, ...selected, '--test-name-pattern=skip'],
+        [...prefix, ...selected.slice(1)],
+        [...prefix, 'test/unregistered.test.mjs'],
+      ]) {
+        assert.throws(() => new OwnedProcess(process.execPath, args, {
+          cwd: ROOT, env, nodeProfile: 'check-phase',
+        }), { code: 'unsafe_qa_route' });
+        assert.equal(calls.length, n - 1);
+      }
+      assert.throws(() => new OwnedProcess(process.execPath, [...prefix, ...selected], {
+        cwd: ROOT, env, nodeProfile: 'check-phase',
+      }), { code: 'spawn_boundary_reached' });
+      assert.equal(calls.length, n);
+    }
+    for (const phase of ['0/16', '17/16', '1/15', '1/16 ', '', undefined]) {
+      assert.throws(() => new OwnedProcess(process.execPath, [...prefix, ...files], {
+        cwd, env: { SystemRoot: process.env.SystemRoot,
+          ...(phase === undefined ? {} : { ORACLE_QA_CHECK_PHASE: phase }) },
+        nodeProfile: 'check-phase',
+      }), { code: 'unsafe_qa_route' });
+      assert.equal(calls.length, 16);
+    }
+  });
+});
+
 test('full fixture and admitted host argv refuse every trailing loader before spawning', t => {
   const cwd = directory(t);
   const envFile = join(cwd, 'preload.env');

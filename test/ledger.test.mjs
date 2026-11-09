@@ -6,6 +6,22 @@ import { createFakePi } from './helpers/fake-pi.mjs';
 const entry = data => ({ type: 'custom', customType: 'oracle-advisor', data });
 const opened = { type: 'job_opened', job_id: 'J1', job_epoch: 1 };
 
+test('R5 purpose projection supplies null for historical responses without changing history', () => {
+  const fake = createFakePi();
+  const ledger = createLedger(fake.pi);
+  ledger.append(opened);
+  ledger.append({ type: 'consult_admitted', request_id: 'old', kind: 'work' });
+  ledger.append({ type: 'consult_finished', request_id: 'old', status: 'answered',
+    response: { details: { status: 'answered' }, structuredContent: { status: 'answered' } } });
+  const history = structuredClone(fake.entries);
+  ledger.rebuild(fake.entries);
+  const record = ledger.request('old');
+  assert.equal(record.consult_purpose, null);
+  assert.equal(record.response.details.consult_purpose, null);
+  assert.equal(record.response.structuredContent.consult_purpose, null);
+  assert.deepEqual(fake.entries, history);
+});
+
 test('native facts are frozen, write-once and isolated from lifecycle metadata', () => {
   const fake = createFakePi();
   const ledger = createLedger(fake.pi);
