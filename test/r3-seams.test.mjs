@@ -47,6 +47,17 @@ test('loaders read configuration fresh from new URL literals without cross-test 
   assert.ok(routing.profiles.gpt);
 });
 
+for (const [nature, expectedFamily] of [['design', 'claude'], ['lowlevel', 'gpt']]) {
+  test(`shipped ${nature} route keeps ${expectedFamily} when oracle role becomes GPT`, () => {
+    const table = loadDefaultRouting();
+    const advisor = resolveAdvisor({ kind: 'work', mainFamily: 'gpt', driver: null, nature, table });
+    const effectiveModel = advisor.model ?? 'chatgpt-subscription/gpt-6-astra:xhigh';
+    assert.equal(familyOf(effectiveModel.split('/')[1].split(':')[0]), expectedFamily);
+    assert.equal(advisor.source, 'by_nature');
+    assert.equal(advisor.reason, nature);
+  });
+}
+
 test('familyOf classifies model IDs correctly into claude, gpt, other, and unknown', () => {
   assert.equal(familyOf('claude-opus-5-5'), 'claude');
   assert.equal(familyOf('anthropic/claude-3-5-sonnet'), 'claude');
@@ -276,7 +287,7 @@ test('resolveAdvisor matrix: nature > agent > family > fallback', () => {
   });
   assert.deepEqual(natureDesign, {
     profile: 'claude',
-    model: null,
+    model: 'anthropic-subscription/claude-opus-5-5:max',
     source: 'by_nature',
     reason: 'design',
   });
@@ -307,7 +318,7 @@ test('resolveAdvisor matrix: nature > agent > family > fallback', () => {
   });
   assert.deepEqual(natureOverAgent, {
     profile: 'claude',
-    model: null,
+    model: 'anthropic-subscription/claude-opus-5-5:max',
     source: 'by_nature',
     reason: 'design',
   });
@@ -322,7 +333,7 @@ test('resolveAdvisor matrix: nature > agent > family > fallback', () => {
   });
   assert.deepEqual(unknownWithNature, {
     profile: 'claude',
-    model: null,
+    model: 'anthropic-subscription/claude-opus-5-5:max',
     source: 'by_nature',
     reason: 'design',
   });
@@ -340,7 +351,7 @@ test('resolveAdvisor matrix: nature > agent > family > fallback', () => {
   });
   assert.deepEqual(agentWork, {
     profile: 'claude',
-    model: null,
+    model: 'anthropic-subscription/claude-opus-5-5:max',
     source: 'by_agent',
     reason: 'atlas:work',
   });
@@ -383,7 +394,7 @@ test('resolveAdvisor matrix: nature > agent > family > fallback', () => {
   });
   assert.deepEqual(familyGptWork, {
     profile: 'claude',
-    model: null,
+    model: 'anthropic-subscription/claude-opus-5-5:max',
     source: 'by_family',
     reason: 'gpt:work',
   });
@@ -397,7 +408,7 @@ test('resolveAdvisor matrix: nature > agent > family > fallback', () => {
   });
   assert.deepEqual(familyOtherWork, {
     profile: 'claude',
-    model: null,
+    model: 'anthropic-subscription/claude-opus-5-5:max',
     source: 'by_family',
     reason: 'other:work',
   });

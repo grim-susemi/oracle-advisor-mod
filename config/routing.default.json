@@ -1,7 +1,10 @@
 {
   "v": 1,
   "profiles": {
-    "claude": {},
+    "claude": {
+      "model": "anthropic-subscription/claude-opus-5-5:max",
+      "family": "claude"
+    },
     "gpt": {
       "model": "chatgpt-subscription/gpt-6-astra:high",
       "family": "gpt"
